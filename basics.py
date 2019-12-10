@@ -1,106 +1,84 @@
-from typing import Optional, List, Any
-
-
-
-
-
-class Fact:
-    def __init__(self, statement, args = [], keys = []):
-        self.statement = statement
-        self.args = args
-        self.keys = keys
-
-    def eval(self, vals):
-        if vals == self.args:
-            return True
-    
-    def sk(self, *keys):
-        self.keys = keys
-        return self
-
-    def __repr__(self):
-        return self.statement
-
-
-
 
 class Relation:
-    def __init__(self, statement, size, keys = []):
-        self.statement = statement
-        self.size = size
+    def __init__(self, description):
+        self.description = description
         self.entries = []
-        self.keys = keys
 
-    def add(self, entry):
-        if len(entry) == self.size:
-            self.entries.append(entry)
+    def add(self, *args):
+        self.entries.append(args)
 
-    def eval(self, entryToCheck):
+    def includes(self, *args):
         for entry in self.entries:
-            if entry == entryToCheck:
+            if entry == args:
                 return True
+        return False
 
-    def sk(self, *keys):
-        self.keys = keys
-        return self
+    def v(self, *args):
+        def evalFunc(*args):
+            return self.includes(*args)
+        return Evaluable(self.description, evalFunc, args)
 
-    def sv(self, *vals):
-        newRel = Relation(self.statement, self.size, self.keys)
-        newRel.add(vals)
-        return newRel
 
+class Evaluable:
+    def __init__(self, description, evalFunc, *inputs):
+        self.description = description
+        self.evalFunc = evalFunc
+        self.inputs = inputs
+
+    def getInputs(self):
+        return [i for i in self.inputs if isinstance(i, str)]
+
+    def eval(self):
+        return self.evalFunc(*self.inputs)
+
+
+class Object(Evaluable):
+    def  __init__(self, description):
+        super().__init__(description, lambda: True)
 
 
 class Rule:
-    def __init__(self, premises, consequence):
-        self.premises = premises
-        self.consequence = consequence
-
-    def eval(self, paras = {}):
-        allPremisesTrue = True
-        for premise in self.premises:
-            keys = premise.keys
-            vals = [paras[k] for k in keys]
-            isTrue = premise.eval(vals)
-            allPremisesTrue = allPremisesTrue and isTrue
-        keys = self.consequence.keys
-        vals = [paras[k] for k in keys]
-        if allPremisesTrue:
-            return Fact(self.consequence.statement, vals)
+    def __init__(self, conditions, consequences):
+        self.conditions = conditions
+        self.consequences = consequences
 
 
+class InferenceEngine:
+    def __init__(self):
+        self.vrs = []
+        self.rules = []
+
+    def add(self, something):
+        if isinstance(something, Rule):
+            self.rules.append(something)
+        elif isinstance(something, Evaluable):
+            self.vrs.append(something)
+
+    def eval(self, question: Evaluable):
+        requirements = question.getInputs()
+        if not requirements:
+            return question.eval()
+        
 
 
-if __name__ == "__main__":
-
-    
-    """
-    Testing 1st order logic
-    """
-    socrates = Fact('Socrates', True)
-    isHumanRel = Relation('Is human', 1)
-    isHumanRel.add([socrates])
-    socatesIsHumanF = isHumanRel.eval([socrates])
-    print(socatesIsHumanF)
-
-    isMortalRel = Relation('Is mortal', 1)
-    allHumansMortalR = Rule([isHumanRel.sk('X')], isMortalRel.sk('X'))
-    socratesIsMortalF = allHumansMortalR.eval({'X': socrates})
-    print(socratesIsMortalF)
 
 
-    thereIsCoffee = Fact('There is coffee', True)
-    eva = Fact('Eva', True)
-    michael = Fact('Michael', True)
-    
-    isHappy = Relation('Is happy', 1)
+if __name__ == '__main__':
+    engine = InferenceEngine() 
+    john = Object('John')
+    engine.add(john)
+    print(engine.eval(john))
 
-    evaHappyIfCoffee = Rule([thereIsCoffee], isHappy.sv(eva))
-    evaHappyF = evaHappyIfCoffee.eval()
-    print(evaHappyF)
+    jane = Object('Jane')
+    engine.add(jane)
+    likes = Relation('likes')
+    likes.add(jane, john)
+    engine.add(likes)
+    print(engine.eval(likes.v(jane, john)))
 
-    michaelHappyIfEva = Rule([isHappy.eval(eva)], isHappy.sv(michael))
-    michaelHappyF = michaelHappyIfEva.eval()
-
-   
-
+    likes.add(john, jane)
+    couple = Relation('couple')
+    coupleIf = Rule([likes.v('X', 'Y'), likes.v('Y', 'X')], [couple.v('X', 'Y'), couple.v('Y', 'X')])
+    engine.add(couple)
+    engine.add(coupleIf)
+    print(engine.eval(couple.v(jane, john)))
