@@ -10,11 +10,11 @@ class Fact:
 
     def __str__(self) -> str:
         if self.truth is True:
-            return f"{self.statementDescription} holds for {self.args}"
+            return f"'{self.statementDescription}' holds for {self.args}"
         elif self.truth is False:
-            return f"{self.statementDescription} holds *not* for {self.args}"
+            return f"'{self.statementDescription}' holds *not* for {self.args}"
         else:
-            return f"it is unknown if {self.statementDescription} holds for {self.args}"
+            return f"It is unknown if '{self.statementDescription}' holds for {self.args}"
 
 
 
@@ -41,7 +41,10 @@ class Rule:
         for premise in self.premises:
             result = premise.holdsTrueFor(*args)
             allPremissesFulfilled = allPremissesFulfilled and result.truth
-        return Fact(self.consequence.description, allPremissesFulfilled, args)
+        if allPremissesFulfilled is True:
+            return Fact(self.consequence.description, allPremissesFulfilled, args)
+        else:
+            return Fact(self.consequence.description, None, args)
 
 
 
@@ -59,7 +62,7 @@ if __name__ == "__main__":
         def __repr__(self):
             return f"Robot Nr. {self.number}"
 
-    def isManFunc(something) -> Union[bool, None]:
+    def isManFunc(something) -> Optional[bool]:
         return isinstance(something, Man)
 
     isMan = Statement('Is a man', isManFunc)
