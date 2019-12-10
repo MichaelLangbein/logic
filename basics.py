@@ -95,8 +95,8 @@ if __name__ == "__main__":
 
     isEvaHappy = Relation('Is Eva happy', 0)
 
-    evaHappyIfCoffee = Rule([isThereCoffee], isEvaHappy)
-    evaHappyF = evaHappyIfCoffee.eval()
+    evaHappyIfCoffee = Rule([isThereCoffee.sk('coffee')], isEvaHappy)
+    evaHappyF = evaHappyIfCoffee.eval({'coffee': coffee})
     print(evaHappyF)
 
    
