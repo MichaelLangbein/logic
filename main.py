@@ -1,6 +1,8 @@
 from typing import Optional, Union, Any, Callable, List
 
 
+Predicate = Callable[[Any], Optional[bool]]
+
 
 class Fact:
     def __init__(self, statementDescription, truth: Optional[bool], *args):
@@ -15,10 +17,6 @@ class Fact:
             return f"'{self.statementDescription}' holds *not* for {self.args}"
         else:
             return f"It is unknown if '{self.statementDescription}' holds for {self.args}"
-
-
-
-Predicate = Callable[[Any], Optional[bool]]
 
 
 class Statement:
@@ -42,7 +40,7 @@ class Rule:
             result = premise.holdsTrueFor(*args)
             allPremissesFulfilled = allPremissesFulfilled and result.truth
         if allPremissesFulfilled is True:
-            return Fact(self.consequence.description, allPremissesFulfilled, args)
+            return Fact(self.consequence.description, True, args)
         else:
             return Fact(self.consequence.description, None, args)
 
