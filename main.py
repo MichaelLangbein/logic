@@ -1,24 +1,24 @@
-from typing import Union, Any, Callable
+from typing import Optional, Union, Any, Callable, List
 
-# Todo: Rule should accept multiple premisses
-# Todo: Test non-membership
 
 
 class Fact:
-    def __init__(self, statementDescription, truth: bool, *args):
+    def __init__(self, statementDescription, truth: Optional[bool], *args):
         self.statementDescription = statementDescription
         self.truth = truth
         self.args = args
 
     def __str__(self) -> str:
-        if self.truth:
+        if self.truth is True:
             return f"{self.statementDescription} holds for {self.args}"
-        else:
+        elif self.truth is False:
             return f"{self.statementDescription} holds *not* for {self.args}"
+        else:
+            return f"it is unknown if {self.statementDescription} holds for {self.args}"
 
 
-Predicate = Callable[[Any], Union[bool, None]]
-Result = Union[Fact, None]
+
+Predicate = Callable[[Any], Optional[bool]]
 
 
 class Statement:
@@ -26,26 +26,22 @@ class Statement:
         self.description = description
         self.holdsTrueFunc = holdsTrueFunc
 
-    def holdsTrueFor(self, *args) -> Result:
+    def holdsTrueFor(self, *args) -> Fact:
         result = self.holdsTrueFunc(*args)
-        if result is None:
-            return None
-        else:
-            return Fact(self.description, result, args)
+        return Fact(self.description, result, args)
         
 
 class Rule:
-    def __init__(self, premise: Statement, consequence: Statement):
-        self.premise = premise
+    def __init__(self, premises: List[Statement], consequence: Statement):
+        self.premises = premises
         self.consequence = consequence
     
-    def deriveFor(self, *args) -> Result:
-        result = self.premise.holdsTrueFor(*args)
-        if result is None:
-            return None
-        else:
-            return Fact(self.consequence.description, result.truth, args)
-
+    def deriveFor(self, *args) -> Fact:
+        allPremissesFulfilled: Optional[bool] = True
+        for premise in self.premises:
+            result = premise.holdsTrueFor(*args)
+            allPremissesFulfilled = allPremissesFulfilled and result.truth
+        return Fact(self.consequence.description, allPremissesFulfilled, args)
 
 
 
@@ -54,13 +50,13 @@ if __name__ == "__main__":
     class Man:
         def __init__(self, name):
             self.name = name
-        def __str__(self):
+        def __repr__(self):
             return self.name
 
     class Robot:
         def __init__(self, number):
             self.number = number
-        def __str__(self):
+        def __repr__(self):
             return f"Robot Nr. {self.number}"
 
     def isManFunc(something) -> Union[bool, None]:
@@ -68,7 +64,7 @@ if __name__ == "__main__":
 
     isMan = Statement('Is a man', isManFunc)
     isMortal = Statement('Is mortal')
-    allMenAreMortal = Rule(isMan, isMortal)
+    allMenAreMortal = Rule([isMan], isMortal)
 
     socrates = Man('Socrates')
     bender = Robot('5432532')
