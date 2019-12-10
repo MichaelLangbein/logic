@@ -1,77 +1,56 @@
-from typing import Optional, Union, Any, Callable, List
-
-
-Predicate = Callable[[Any], Optional[bool]]
-
-
-class Fact:
-    def __init__(self, statementDescription, truth: Optional[bool], *args):
-        self.statementDescription = statementDescription
-        self.truth = truth
-        self.args = args
-
-    def __str__(self) -> str:
-        if self.truth is True:
-            return f"'{self.statementDescription}' holds for {self.args}"
-        elif self.truth is False:
-            return f"'{self.statementDescription}' holds *not* for {self.args}"
-        else:
-            return f"It is unknown if '{self.statementDescription}' holds for {self.args}"
+from typing import Optional, List
 
 
 class Statement:
-    def __init__(self, description: str, holdsTrueFunc: Predicate = lambda inpt: None):
+    def __init__(self, description):
         self.description = description
-        self.holdsTrueFunc = holdsTrueFunc
 
-    def holdsTrueFor(self, *args) -> Fact:
-        result = self.holdsTrueFunc(*args)
-        return Fact(self.description, result, args)
-        
+    def __repr__(self):
+        return self.description
+
+
+class Fact:
+    def __init__(self, description: str, truth: Optional[bool]):
+        self.description = description
+        self.truth = truth
+
+    def __repr__(self):
+        if self.truth is True:
+            return f"'{self.description}' holds true"
+        elif self.truth is False:
+            return f"'{self.description}' does not hold true"
+        else: 
+            return f"It is unknown if '{self.description}' holds true"
+
 
 class Rule:
     def __init__(self, premises: List[Statement], consequence: Statement):
         self.premises = premises
         self.consequence = consequence
-    
-    def deriveFor(self, *args) -> Fact:
-        allPremissesFulfilled: Optional[bool] = True
+
+    def eval(self, facts: List[Fact]) -> Fact:
+        allTrue: Optional[bool] = True
         for premise in self.premises:
-            result = premise.holdsTrueFor(*args)
-            allPremissesFulfilled = allPremissesFulfilled and result.truth
-        if allPremissesFulfilled is True:
-            return Fact(self.consequence.description, True, args)
-        else:
-            return Fact(self.consequence.description, None, args)
+            fact = next(f for f in facts if f.description == premise.description)
+            allTrue = allTrue and fact.truth
+        if allTrue:
+            return Fact(self.consequence.description, True)
+        else: 
+            return Fact(self.consequence.description, None)
 
 
 
 if __name__ == "__main__":
     
-    class Man:
-        def __init__(self, name):
-            self.name = name
-        def __repr__(self):
-            return self.name
+    thereIsCoffeeF = Fact('There is coffee', True)
+    evaIsHappyS = Statement('Eva is happy')
+    michaelIsHappyS = Statement('Michael is happy')
+    
+    ifCoffeeEvaHappyR = Rule([thereIsCoffeeF], evaIsHappyS)
+    ifEvaHappyMichaelHappyR = Rule([evaIsHappyS], michaelIsHappyS)
 
-    class Robot:
-        def __init__(self, number):
-            self.number = number
-        def __repr__(self):
-            return f"Robot Nr. {self.number}"
+    evaIsHappyF = ifCoffeeEvaHappyR.eval([thereIsCoffeeF])
+    michaelIsHappyF = ifEvaHappyMichaelHappyR.eval([evaIsHappyF])
 
-    def isManFunc(something) -> Optional[bool]:
-        return isinstance(something, Man)
-
-    isMan = Statement('Is a man', isManFunc)
-    isMortal = Statement('Is mortal')
-    allMenAreMortal = Rule([isMan], isMortal)
-
-    socrates = Man('Socrates')
-    bender = Robot('5432532')
-
-    derivedFact = allMenAreMortal.deriveFor(socrates)
-    print(derivedFact)
-    derivedFact2 = allMenAreMortal.deriveFor(bender)
-    print(derivedFact2)
-
+    print(evaIsHappyF)
+    print(michaelIsHappyF)
