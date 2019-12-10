@@ -3,101 +3,101 @@ from typing import Optional, List, Any
 
 
 
-class Statement:
-    def __init__(self, description, args: List[Any] = []):
-        self.description = description
-        self.args = args
-
-    def __repr__(self):
-        return self.description
-
 
 class Fact:
-    def __init__(self, statement: Statement, truth: Optional[bool], args: List[Any] = []):
+    def __init__(self, statement, truth: Optional[bool], args = []):
         self.statement = statement
         self.truth = truth
         self.args = args
 
     def __repr__(self):
-        end = ""
-        if len(self.args) > 0:
-            end = f" for {self.args}"
         if self.truth is True:
-            return f"'{self.statement}' holds true" + end
+            return f"'{self.statement}' holds true for {self.args}"
         elif self.truth is False:
-            return f"'{self.statement}' does not hold true" + end
+            return f"'{self.statement}' does not hold true for {self.args}"
         else: 
-            return f"It is unknown if '{self.statement}' holds true" + end
+            return f"It is unknown if '{self.statement}' holds true for {self.args}"
+
+
+
+
+
+class Relation:
+    def __init__(self, statement, size: int, keys = []):
+        self.statement = statement
+        self.size = size
+        self.entries = []
+        self.keys = keys
+
+    def add(self, entry: List[Fact]):
+        if len(entry) == self.size:
+            self.entries.append(entry)
+
+    def eval(self, entryToCheck):
+        for entry in self.entries:
+            if entry == entryToCheck:
+                return Fact(self.statement, True, entryToCheck)
+        return Fact(self.statement, False, entryToCheck)
+
+    def sk(self, *keys):
+        self.keys = keys
+        return self
+
 
 
 class Rule:
-    def __init__(self, premises: List[Statement], consequence: Statement):
+    def __init__(self, premises: List[Relation], consequence: Relation):
         self.premises = premises
         self.consequence = consequence
 
-    def eval(self, facts: List[Fact]) -> Fact:
-        allTrue: Optional[bool] = True
+    def eval(self, paras = {}) -> Fact:
+        allPremisesTrue = True
         for premise in self.premises:
-            fact = next(f for f in facts if f.statement.description == premise.description)
-            allTrue = allTrue and fact.truth
-        if allTrue:
-            consequenceInstances = self.__getConsequenceInstances(facts)
-            return Fact(self.consequence, True, consequenceInstances)
-        else: 
-            return Fact(self.consequence, None)
+            keys = premise.keys
+            vals = [paras[k] for k in keys]
+            isTrue = premise.eval(vals)
+            allPremisesTrue = allPremisesTrue and isTrue.truth
+        keys = self.consequence.keys
+        vals = [paras[k] for k in keys]
+        if allPremisesTrue:
+            return Fact(self.consequence.statement, True, vals)
+        else:
+            return Fact(self.consequence.statement, None, vals)
 
-    def __getConsequenceInstances(self, facts: List[Fact]):
-        allInstances = []
-        for fact in facts:
-            allInstances.extend(fact.args)
-        consequenceInstances = []
-        for instance in allInstances:
-            for C in self.consequence.args:
-                if isinstance(instance, C):
-                    consequenceInstances.append(instance)
-        return consequenceInstances
+
 
 
 if __name__ == "__main__":
+
     
-    """
-    Testing 0th order logic
-    """
-
-    evaIsHappyS = Statement('Eva is happy')
-    michaelIsHappyS = Statement('Michael is happy')
-    thereIsCoffeeS = Statement('There is coffee')
-    thereIsCoffeeF = Fact(thereIsCoffeeS, True)
-    
-    ifCoffeeEvaHappyR = Rule([thereIsCoffeeS], evaIsHappyS)
-    ifEvaHappyMichaelHappyR = Rule([evaIsHappyS], michaelIsHappyS)
-
-    evaIsHappyF = ifCoffeeEvaHappyR.eval([thereIsCoffeeF])
-    michaelIsHappyF = ifEvaHappyMichaelHappyR.eval([evaIsHappyF])
-
-    print(evaIsHappyF)
-    print(michaelIsHappyF)
-
-
-
     """
     Testing 1st order logic
     """
+    socrates = Fact('Socrates', True)
+    isHumanRel = Relation('Is human', 1)
+    isHumanRel.add([socrates])
+    socatesIsHumanF = isHumanRel.eval([socrates])
+    print(socatesIsHumanF)
 
-    class Man:
-        def __init__(self, name):
-            self.name = name
-        def __repr__(self):
-            return self.name
+    isMortalRel = Relation('Is mortal', 1)
+    allHumansMortalR = Rule([isHumanRel.sk('X')], isMortalRel.sk('X'))
+    socratesIsMortalF = allHumansMortalR.eval({'X': socrates})
+    print(socratesIsMortalF)
 
-    isManS = Statement('Is a man', [Man])
-    isMortalS = Statement('Is mortal', [Man])
 
-    ifIsManThenIsMortalR = Rule([isManS], isMortalS)
 
-    pythagoras = Man('Pythagoras')
-    pythagorasIsAManF = Fact(isManS, True, [pythagoras])
+    michael = Fact('Michael', True)
+    eva = Fact('Eva', True)
+    coffee = Fact('There is coffee', True)
 
-    pythagorasIsMortalF = ifIsManThenIsMortalR.eval([pythagorasIsAManF])
+    isThereCoffee = Relation('Is there coffee', 1)
+    isThereCoffee.add([coffee])
 
-    print(pythagorasIsMortalF)
+    isEvaHappy = Relation('Is Eva happy', 0)
+
+    evaHappyIfCoffee = Rule([isThereCoffee], isEvaHappy)
+    evaHappyF = evaHappyIfCoffee.eval()
+    print(evaHappyF)
+
+   
+
