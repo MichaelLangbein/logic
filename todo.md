@@ -5,6 +5,7 @@ also encode the 'False' status in facts.
 Try to encode the rules for sudoku, and then solve a game.
 
 When information is missing, ask it from user
+        when there are no more candidate rules to try and derive a fact, ask.
 
 Can I do a geospatial inference engine?
         One that takes geopandas as facts
