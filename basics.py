@@ -2,28 +2,40 @@ from typing import List
 
 
 
-class Fact:
-    def __init__(self, description, *args):
-        self.description = description
-        self.args = args
-
 
 class Relation:
-    def __init__(self, description):
+    def __init__(self, description, nr):
         self.description = description
+        self.nr = nr
         self.entries = []
 
     def add(self, *args):
         self.entries.append(args)
 
-    def includes(self, *args):
+    def eval(self, *args):
         for entry in self.entries:
             if entry == args:
                 return True
         return False
 
-    def v(self, *args):
-        return Fact(self.description, *args)
+
+# A property is a unary relation
+class Property(Relation):
+    def __init__(self, description):
+        super().__init__(description, 1)
+
+
+# An object is a unary relation with one member
+class Object(Relation):
+    def __init__(self, description):
+        super().__init__(description, 1)
+        self.add(description)
+
+    def add(self, *args):
+        pass
+
+    def eval(self):
+        return True
 
 
 
@@ -35,20 +47,16 @@ class Rule:
 
 class InferenceEngine:
     def __init__(self):
-        self.facts: List[Fact] = []
-        self.relations: List[Relation] = []
+        self.facts: List[Relation] = []
         self.rules: List[Rule] = []
 
-    def addFacts(self, *newFacts: List[Fact]):
+    def addFacts(self, *newFacts: List[Relation]):
         self.facts += newFacts
-
-    def addRelations(self, *newRelations: List[Relation]):
-        self.relations += newRelations
 
     def addRules(self, *newRules: List[Rule]):
         self.rules += newRules
 
-    def eval(self, candidateFact: Fact):
+    def eval(self, candidateFact):
         alreadyKnown = self.__findInFacts(candidateFact)
         if alreadyKnown:
             return True
@@ -77,20 +85,26 @@ class InferenceEngine:
 
 if __name__ == '__main__':
     engine = InferenceEngine() 
-    john = Fact('John')
+    john = Object('John')
     engine.addFacts(john)
     print(engine.eval(john))
 
-    jane = Fact('Jane')
-    engine.addFacts(jane)
-    likes = Relation('likes')
+    jane = Object('Jane')
+    likes = Relation('likes', 2)
     likes.add(jane, john)
-    engine.addRelations(likes)
+    engine.addFacts(jane, likes)
     print(engine.eval(likes.v(jane, john)))
 
     likes.add(john, jane)
-    couple = Relation('couple')
+    couple = Relation('couple', 2)
     coupleIf = Rule([likes.v('X', 'Y'), likes.v('Y', 'X')], [couple.v('X', 'Y'), couple.v('Y', 'X')])
-    engine.addRelations(couple)
+    engine.addFacts(couple)
     engine.addRules(coupleIf)
     print(engine.eval(couple.v(jane, john)))
+
+    coffeeThere = Object('There is coffee')
+    happy = Relation('Is happy', 1)
+    janeHappyIfCoffee = Rule([coffeeThere], [happy.v(jane)])
+    engine.addFacts(coffeeThere, happy)
+    engine.addRules(janeHappyIfCoffee)
+    print(engine.eval(happy.v(jane)))
