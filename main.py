@@ -5,8 +5,11 @@ class InferenceEngine:
         self.facts = []
         self.rules = []
 
-    def addFact(self, *args):
-        self.facts.append(args)
+    def addFact(self, *fact):
+        self.facts.append(fact)  # add the fact
+        for arg in fact[1:]:
+            if not self.__isVariable(arg):
+                self.addFact(arg) # add all arguments
 
     def addRule(self, conditions, consequence):
         self.rules.append({'conditions': conditions, 'consequence': consequence})
@@ -29,10 +32,10 @@ class InferenceEngine:
         substitutedStatement = []
         substitutedStatement.append(statement[0])
         for arg in statement[1:]:
-            if arg[0].islower():
-                substitutedStatement.append(arg)
-            else:
+            if self.__isVariable(arg):
                 substitutedStatement.append(variableDict[arg])
+            else:
+                substitutedStatement.append(arg)
         return tuple(substitutedStatement)
 
     def __findInFacts(self, *args) -> bool:
@@ -52,40 +55,34 @@ class InferenceEngine:
                     return True
         return False
 
+    def __isVariable(self, arg):
+        return isinstance(arg, str) and arg[0].isupper()
+
 
 
 
 
 if __name__ == '__main__':
     e = InferenceEngine() 
-    e.addFact('john')
-    print(e.eval('john'))
-
-    e.addFact('likes', 'jane', 'john')
-    print(e.eval('likes', 'jane', 'john'))
-
-    e.addFact('likes', 'john', 'jane')
-    e.addRule([
-        ['likes', 'X', 'Y'], 
-        ['likes', 'Y', 'X']
-    ],
-    ['couple', 'X', 'Y']
-    )
-    print(e.eval('couple', 'jane', 'john'))
-
-    e.addFact('coffee')
-    e.addRule([
-        ['coffee']
-    ],
-    ['happy', 'jane']
-    )
-    print(e.eval('happy', 'jane'))
-
-
+    
+    # Test 1: testing variable substitution
     e.addRule([
         ['famous', 'X'],
         ['single', 'john']
     ],
-    ['loves', 'john' 'X'])
-    e.addFact('famous', 'Brad Pitt')
-    print(e.eval('loves', 'john', 'Brad Pitt'))
+    ['loves', 'john', 'X'])
+    e.addFact('famous', 'brad pitt')
+    print(e.eval('loves', 'john', 'brad pitt'))
+
+
+    # Test 2: testing deep chaining
+    e.addRule([
+        ['coffee']
+    ], ['happy', 'jane'])
+    e.addRule([
+        ['happy', 'jane']
+    ], ['happy', 'michael'])
+    e.addFact('coffee')
+    print(e.eval('happy', 'michael'))
+
+    # TODO: do inference with X not an atom, but itself a statement
