@@ -1,6 +1,9 @@
 also encode the 'False' status in facts.
-        oh, but is that wise? what if new data comes in that might make a statement true?
-                To handle this, we need a third, None-state!
+  - oh, but is that wise? what if new data comes in that might make a statement true?
+    - To handle this, we need a third, None-state!
+    - Or, whenever new data comes in, 
+      - check if new data conficts with existing
+      - reevaluate the false-facts list by doing a forward-pass.
 
 Try to encode the rules for sudoku, and then solve a game.
 
