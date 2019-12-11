@@ -40,21 +40,32 @@ class InferenceEngine:
         candidateRules = self.__findCandidateRules(*statement)
         for candidateRule in candidateRules:
             substitutedRule = self.__setRuleVariablesByStatement(candidateRule, statement)
-            if self.__allStatementsTrue(substitutedRule['conditions']):
-                substitutedStatement = substitutedRule['consequence']
-                self.addFact(*substitutedStatement)
-                return substitutedStatement
+            facts = self.__evalAll(substitutedRule['conditions'])
+            if facts:
+                substitutedRule = self.__setRuleVariablesByStatements(substitutedRule, facts)
+                self.addFact(*substitutedRule['consequence'])
+                return substitutedRule['consequence']
         return False
 
-    def __allStatementsTrue(self, statements):
+    def __evalAll(self, statements):
+        facts = []
         for statement in statements:
-            if not self.eval(*statement):
+            fact = self.eval(*statement)
+            if not fact:
                 return False
-        return True
+            else:
+                facts.append(fact)
+        return facts
 
     '''
     -----------------  helpers -------------------------
     '''
+
+    def __setRuleVariablesByStatements(self, rule, statements):
+        newRule = dict(rule)
+        for statement in statements:
+            newRule = self.__setRuleVariablesByStatement(newRule, statement)
+        return newRule
 
     def __setRuleVariablesByStatement(self, rule, statement):
         substitutionDict = {}
@@ -90,9 +101,9 @@ class InferenceEngine:
 
     def __statementsEquivalentExceptVariables(self, statementOne, statementTwo):
         for wordOne, wordTwo in zip(statementOne, statementTwo):
-            oneIsVar = self.__isVariable(wordOne)
-            twoIsVar = self.__isVariable(wordTwo)
-            if (oneIsVar and twoIsVar) or (not oneIsVar and not twoIsVar):
+            oneIsVal = not self.__isVariable(wordOne)
+            twoIsVal = not self.__isVariable(wordTwo)
+            if oneIsVal and twoIsVal: # ? (oneIsVar and twoIsVar) or (not oneIsVar and not twoIsVar):
                 if wordOne != wordTwo:
                     return False
         return True
@@ -106,6 +117,13 @@ class InferenceEngine:
 
 if __name__ == '__main__':
     e = InferenceEngine() 
+
+    # Test 0: obligatory Socrates test
+    e.addRule([
+        ['man', 'X']
+    ], ['mortal', 'X'])
+    e.addFact('man', 'socrates')
+    print(e.eval('mortal', 'Y'))
 
     # Test 3: variable in condition
     e.addRule([
