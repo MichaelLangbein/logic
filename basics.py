@@ -1,3 +1,12 @@
+from typing import List
+
+
+
+class Fact:
+    def __init__(self, description, *args):
+        self.description = description
+        self.args = args
+
 
 class Relation:
     def __init__(self, description):
@@ -14,27 +23,8 @@ class Relation:
         return False
 
     def v(self, *args):
-        def evalFunc(*args):
-            return self.includes(*args)
-        return Evaluable(self.description, evalFunc, args)
+        return Fact(self.description, *args)
 
-
-class Evaluable:
-    def __init__(self, description, evalFunc, *inputs):
-        self.description = description
-        self.evalFunc = evalFunc
-        self.inputs = inputs
-
-    def getInputs(self):
-        return [i for i in self.inputs if isinstance(i, str)]
-
-    def eval(self):
-        return self.evalFunc(*self.inputs)
-
-
-class Object(Evaluable):
-    def  __init__(self, description):
-        super().__init__(description, lambda: True)
 
 
 class Rule:
@@ -45,40 +35,62 @@ class Rule:
 
 class InferenceEngine:
     def __init__(self):
-        self.vrs = []
-        self.rules = []
+        self.facts: List[Fact] = []
+        self.relations: List[Relation] = []
+        self.rules: List[Rule] = []
 
-    def add(self, something):
-        if isinstance(something, Rule):
-            self.rules.append(something)
-        elif isinstance(something, Evaluable):
-            self.vrs.append(something)
+    def addFacts(self, *newFacts: List[Fact]):
+        self.facts += newFacts
 
-    def eval(self, question: Evaluable):
-        requirements = question.getInputs()
-        if not requirements:
-            return question.eval()
+    def addRelations(self, *newRelations: List[Relation]):
+        self.relations += newRelations
+
+    def addRules(self, *newRules: List[Rule]):
+        self.rules += newRules
+
+    def eval(self, candidateFact: Fact):
+        alreadyKnown = self.__findInFacts(candidateFact)
+        if alreadyKnown:
+            return True
+        proven = self.__tryToDeduce(candidateFact)
+        return proven
+
+    def __findInFacts(self, candidate: Fact):
+        for fact in self.facts:
+            if fact.description == candidate.description:
+                return True
+        return False
+
+    def __tryToDeduce(self, candidate: Fact):
+        for rule in self.rules:
+            if rule.consequences.includes(candidate.description):
+                args = self.__getArgumentsForRule(rule)
+                for arg in args:
+                    newFacts = rule.eval(arg)
+                    self.addFacts(newFacts)
+                    if newFacts.include(candidate):
+                        return True
+        return False
         
-
 
 
 
 if __name__ == '__main__':
     engine = InferenceEngine() 
-    john = Object('John')
-    engine.add(john)
+    john = Fact('John')
+    engine.addFacts(john)
     print(engine.eval(john))
 
-    jane = Object('Jane')
-    engine.add(jane)
+    jane = Fact('Jane')
+    engine.addFacts(jane)
     likes = Relation('likes')
     likes.add(jane, john)
-    engine.add(likes)
+    engine.addRelations(likes)
     print(engine.eval(likes.v(jane, john)))
 
     likes.add(john, jane)
     couple = Relation('couple')
     coupleIf = Rule([likes.v('X', 'Y'), likes.v('Y', 'X')], [couple.v('X', 'Y'), couple.v('Y', 'X')])
-    engine.add(couple)
-    engine.add(coupleIf)
+    engine.addRelations(couple)
+    engine.addRules(coupleIf)
     print(engine.eval(couple.v(jane, john)))
