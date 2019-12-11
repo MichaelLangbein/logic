@@ -1,3 +1,4 @@
+from typing import Union
 
 
 class InferenceEngine:
@@ -14,26 +15,35 @@ class InferenceEngine:
                 self.addFact(arg) # add all arguments
 
     def addRule(self, conditions, consequence):
-        self.rules.append({'conditions': conditions, 'consequence': consequence})
+        newRule = {'conditions': conditions, 'consequence': consequence}
+        if not newRule in self.rules:
+            self.rules.append(newRule)
+            print(f"Just learned that {newRule}")
 
-    def eval(self, *statement) -> bool:
-        if self.__findInFacts(*statement):
-            return True
-        return self.__tryToProve(*statement)
-
-    def __findInFacts(self, *args) -> bool:
-        for fact in self.facts:
-            if fact == args:
-                return True
+    def eval(self, *statement):
+        print(f"Evaluating whether '{statement}' holds true")
+        fact = self.__searchFacts(*statement)
+        if fact: 
+            return fact
+        fact = self.__tryToProve(*statement)
+        if fact:
+            return fact
         return False
 
-    def __tryToProve(self, *statement) -> bool:
+    def __searchFacts(self, *statement):
+        for fact in self.facts:
+            if self.__statementsEquivalentExceptVariables(fact, statement):
+                return fact
+        return False
+
+    def __tryToProve(self, *statement):
         candidateRules = self.__findCandidateRules(*statement)
         for candidateRule in candidateRules:
             substitutedRule = self.__setRuleVariablesByStatement(candidateRule, statement)
             if self.__allStatementsTrue(substitutedRule['conditions']):
-                self.addFact(*statement)
-                return True
+                substitutedStatement = substitutedRule['consequence']
+                self.addFact(*substitutedStatement)
+                return substitutedStatement
         return False
 
     def __allStatementsTrue(self, statements):
@@ -65,7 +75,7 @@ class InferenceEngine:
     def __setVariablesByDict(self, statement, subsDict):
         newStatement = [statement[0]]
         for arg in statement[1:]:
-            if self.__isVariable(arg):
+            if self.__isVariable(arg) and arg in subsDict:
                 newStatement.append(subsDict[arg])
             else:
                 newStatement.append(arg)
@@ -74,13 +84,18 @@ class InferenceEngine:
     def __findCandidateRules(self, *statement):
         candidates = []
         for rule in self.rules:
-            if rule['consequence'][0] == statement[0]:
-                argsFittingTogether = True
-                for argRule, argStatement in zip(rule['consequence'][1:], statement[1:]):
-                    argsFittingTogether = argsFittingTogether and (argRule == argStatement or self.__isVariable(argRule))
-                if argsFittingTogether:
-                    candidates.append(rule)
+            if self.__statementsEquivalentExceptVariables(rule['consequence'], statement):
+                candidates.append(rule)
         return candidates
+
+    def __statementsEquivalentExceptVariables(self, statementOne, statementTwo):
+        for wordOne, wordTwo in zip(statementOne, statementTwo):
+            oneIsVar = self.__isVariable(wordOne)
+            twoIsVar = self.__isVariable(wordTwo)
+            if (oneIsVar and twoIsVar) or (not oneIsVar and not twoIsVar):
+                if wordOne != wordTwo:
+                    return False
+        return True
 
     def __isVariable(self, arg):
         return isinstance(arg, str) and arg[0].isupper()
@@ -91,74 +106,12 @@ class InferenceEngine:
 
 if __name__ == '__main__':
     e = InferenceEngine() 
-    
-    # Test 1: testing variable substitution
-    e.addRule([
-        ['famous', 'X'],
-        ['single', 'john']
-    ],
-    ['loves', 'john', 'X'])
-    e.addFact('famous', 'brad pitt')
-    print(e.eval('loves', 'john', 'brad pitt'))
-    e.addFact('single', 'john')
-    print(e.eval('loves', 'john', 'brad pitt'))
 
-
-    # Test 2: testing deep chaining
+    # Test 3: variable in condition
     e.addRule([
         ['coffee']
     ], ['happy', 'jane'])
-    e.addRule([
-        ['happy', 'jane']
-    ], ['happy', 'michael'])
     e.addFact('coffee')
-    print(e.eval('happy', 'michael'))
+    print(e.eval('happy', 'X'))
 
     # TODO: do inference with X not an atom, but itself a statement
-
-    e.addRule([
-        ['rating', 'X', 'beginner'],
-        ['purpose', 'X', 'fun']
-    ], ['advice', 'X', 'st_sartre'])
-
-    e.addRule([
-        ['rating', 'X', 'beginner'],
-        ['purpose', 'X', 'serious']
-    ], ['advice', 'X', 'schloss_heidegger'])
-
-    e.addRule([
-        ['rating', 'X', 'advanced'],
-        ['purpose', 'X', 'fun']
-    ], ['advice', 'X', 'wittgenstein'])
-
-    e.addRule([
-        ['rating', 'X', 'advanced'],
-        ['purpose', 'X', 'serious']
-    ], ['advice', 'X', 'chateau_derrida'])
-
-    e.addRule([
-        ['lessons', 'X', 'less_than_30']
-    ], ['rating', 'X', 'beginner'])
-
-    e.addRule([
-        ['lessons', 'X', 'more_than_30'],
-        ['fitness', 'X', 'poor']
-    ], ['rating', 'X', 'beginner'])
-
-    e.addRule([
-        ['lessons', 'X', 'more_than_30'],
-        ['fitness', 'X', 'good']
-    ], ['rating', 'X', 'advanced'])
-
-    e.addRule([
-        ['pushups', 'X', 'less_than_10']
-    ], ['fitness', 'X', 'poor'])
-
-    e.addRule([
-        ['pushups', 'X', 'more_than_10']
-    ], ['fitness', 'X', 'good'])
-
-    e.addFact('pushups', 'john', 'more_than_10')
-    e.addFact('purpose', 'john', 'fun')
-    print(e.eval('advice', 'john', 'wittgenstein'))
-    print(e.eval('advice', 'john', '?'))

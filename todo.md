@@ -1,3 +1,10 @@
+evaluating whether 'happy' 'X' holds true
+        consider variables
+                __tryToProve: consider variables
+
+                engine.addFact('happy' 'jane')
+                engine.eval('happy', 'X')
+
 
 Try to encode the rules for sudoku, and then solve a game.
 
