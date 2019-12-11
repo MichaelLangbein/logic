@@ -23,11 +23,12 @@ class InferenceEngine:
     def eval(self, *statement):
         print(f"Evaluating whether '{statement}' holds true")
         fact = self.__searchFacts(*statement)
-        if fact: 
+        if fact:
             return fact
         fact = self.__tryToProve(*statement)
         if fact:
             return fact
+        print(f"No, '{statement}' holds not true")
         return False
 
     def __searchFacts(self, *statement):
@@ -124,6 +125,71 @@ if __name__ == '__main__':
     ], ['mortal', 'X'])
     e.addFact('man', 'socrates')
     print(e.eval('mortal', 'Y'))
+
+
+    # Test 1: testing variable substitution
+    e.addRule([
+        ['famous', 'X'],
+        ['single', 'john']
+    ],
+    ['loves', 'john', 'X'])
+    e.addFact('famous', 'brad pitt')
+    print(e.eval('loves', 'john', 'brad pitt'))
+    e.addFact('single', 'john')
+    print(e.eval('loves', 'john', 'brad pitt'))
+
+    
+    # Test 2: deep inference
+    e.addRule([
+        ['rating', 'X', 'beginner'],
+        ['purpose', 'X', 'fun']
+    ], ['advice', 'X', 'st_sartre'])
+
+    e.addRule([
+        ['rating', 'X', 'beginner'],
+        ['purpose', 'X', 'serious']
+    ], ['advice', 'X', 'schloss_heidegger'])
+
+    e.addRule([
+        ['rating', 'X', 'advanced'],
+        ['purpose', 'X', 'fun']
+    ], ['advice', 'X', 'wittgenstein'])
+
+    e.addRule([
+        ['rating', 'X', 'advanced'],
+        ['purpose', 'X', 'serious']
+    ], ['advice', 'X', 'chateau_derrida'])
+
+    e.addRule([
+        ['lessons', 'X', 'less_than_30']
+    ], ['rating', 'X', 'beginner'])
+
+    e.addRule([
+        ['fitness', 'X', 'poor']
+    ], ['rating', 'X', 'beginner'])
+
+    e.addRule([
+        ['lessons', 'X', 'more_than_30'],
+        ['fitness', 'X', 'poor']
+    ], ['rating', 'X', 'beginner'])
+
+    e.addRule([
+        ['lessons', 'X', 'more_than_30'],
+        ['fitness', 'X', 'good']
+    ], ['rating', 'X', 'advanced'])
+
+    e.addRule([
+        ['pushups', 'X', 'less_than_10']
+    ], ['fitness', 'X', 'poor'])
+
+    e.addRule([
+        ['pushups', 'X', 'more_than_10']
+    ], ['fitness', 'X', 'good'])
+
+    e.addFact('pushups', 'john', 'more_than_10')
+    e.addFact('lessons', 'john', 'more_than_30')
+    e.addFact('purpose', 'john', 'serious')
+    print(e.eval('advice', 'john', 'X'))
 
     # Test 3: variable in condition
     e.addRule([
