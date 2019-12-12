@@ -1,3 +1,6 @@
+(happy X) should return all matches instead of just one
+
+
 also encode the 'False' status in facts.
   - oh, but is that wise? what if new data comes in that might make a statement true?
     - To handle this, we need a third, None-state!
