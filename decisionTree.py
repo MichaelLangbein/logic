@@ -40,40 +40,42 @@ def countPrintTree(node):
         return l1 + l2
 
 
-def doCreateTree(splitPoints, rows):
-    ent = entropy(rows)
-    return createTree(splitPoints, rows, ent)
+def doCreateTree(splitPoints, rows, targets):
+    ent = entropy(rows, targets)
+    return createTree(splitPoints, rows, targets, ent)
 
 
-def createTree(splitPoints: List[KVPair], rows, entropy):
+def createTree(splitPoints: List[KVPair], rows, targets, entropy):
     if len(rows) == 1 or len(splitPoints) == 0:
         return Leaf(rows)
-    splitPoint, rows1, rows2, ent1, ent2 = split(splitPoints, rows, entropy)
+    splitPoint, rows1, rows2, targ1, targ2, ent1, ent2 = split(splitPoints, rows, targets, entropy)
     if splitPoint is None:
         return Leaf(rows)
     print(f"splitting at {splitPoint}")
     newSplitPoints = [sp for sp in splitPoints if sp != splitPoint]
-    tree1 = createTree(newSplitPoints, rows1, ent1)
-    tree2 = createTree(newSplitPoints, rows2, ent2)
+    tree1 = createTree(newSplitPoints, rows1, targ1, ent1)
+    tree2 = createTree(newSplitPoints, rows2, targ2, ent2)
     return Node(splitPoint, tree1, tree2)
 
 
-def split(splitPoints: List[KVPair], rows, totalEnt):
+def split(splitPoints: List[KVPair], rows, targets, totalEnt):
     minInfoGain = - inf
-    best = (None, None, None, None, None)
+    best = (None, None, None, None, None, None, None)
     for point in splitPoints:
-        set1, set2 = splitRowsAt(rows, point)
+        set1, set2, targets1, targets2 = splitRowsAt(rows, targets, point)
         if len(set1) > 0 and len(set2) > 0:
-            ent1 = entropy(set1)
-            ent2 = entropy(set2)
-            infoGain = totalEnt/len(rows)  -  (ent1/len(set1) + ent2/len(set2))
+            ent1 = entropy(set1, targets1)
+            ent2 = entropy(set2, targets2)
+            q = len(set1)/len(rows)
+            w = 1 - q
+            infoGain = totalEnt - q*ent1 - w*ent2
             if infoGain > minInfoGain:
                 minInfoGain = infoGain
-                best = (point, set1, set2, ent1, ent2)
+                best = (point, set1, set2, targets1, targets2, ent1, ent2)
     return best
 
 
-def splitRowsAt(rows, point):
+def splitRowsAt(rows, targets, point):
     splitFunction = None
     if isinstance(point.val, int) or isinstance(point.val, float):
         splitFunction = lambda row: row[point.key] >= point.val
@@ -81,32 +83,36 @@ def splitRowsAt(rows, point):
         splitFunction = lambda row: row[point.key] != point.val
     set1 = []
     set2 = []
-    for row in rows:
+    targets1 = []
+    targets2 = []
+    for row, target in zip(rows, targets):
         if splitFunction(row):
             set1.append(row)
+            targets1.append(target)
         else:
             set2.append(row)
-    return (set1, set2)
+            targets2.append(target)
+    return (set1, set2, targets1, targets2)
 
 
-def entropy(rows):
+def entropy(rows, targets):
     log2 = lambda x: log(x)/log(2)
-    colCounts = uniqueColCounts(rows)
+    counts = valCounts(targets)
     entropy = 0.0
-    for colName in colCounts.keys():
-        p = float(colCounts[colName]) / len(rows)
+    for value in counts.keys():
+        p = float(counts[value]) / len(rows)
         entropy = entropy - p * log2(p)
     return entropy
 
 
-def uniqueColCounts(rows):
-    uniqueCounts = {}
-    if len(rows) == 0:
-        return uniqueCounts
-    for colName in rows[0].keys():
-        colVals = [row[colName] for row in rows]
-        uniqueCounts[colName] = len(unique(colVals))
-    return uniqueCounts
+def valCounts(data):
+    counts = {}
+    for val in data:
+        if not val in counts.keys():
+            counts[val] = 1
+        else:
+            counts[val] += 1
+    return counts
 
 
 def unique(data):
@@ -118,8 +124,12 @@ def unique(data):
 
 
 if __name__ == '__main__':
+    targetColumn = 'class'
+
     rows = []
+    targets = []
     for row in csv.DictReader(open('data/mushrooms.csv')):
+        targets.append(row.pop(targetColumn))
         rows.append(row)
 
     splitPoints = []
@@ -128,7 +138,7 @@ if __name__ == '__main__':
         uniqueVals = unique(colVals)
         splitPoints += [KVPair(key, val) for val in uniqueVals]
 
-    tree = doCreateTree(splitPoints, rows)
+    tree = doCreateTree(splitPoints, rows, targets)
     countPrintTree(tree)
 
 
