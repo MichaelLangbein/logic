@@ -1,5 +1,14 @@
-(happy X) should return all matches instead of just one
+# Overall Strategy
+ 
+ - generating rules
+   - by genetic algorithm
+ - agents interacting: 
+   - each agent has its own IE
+   - agents ask each other questions
 
+
+# Inference Engine
+(happy X) should return all matches instead of just one
 
 also encode the 'False' status in facts.
   - oh, but is that wise? what if new data comes in that might make a statement true?
