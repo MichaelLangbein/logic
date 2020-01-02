@@ -1,4 +1,3 @@
-import csv
 from math import log, inf
 from typing import List
 
@@ -17,13 +16,28 @@ class Node:
         self.splitPoint = splitPoint
         self.branch1 = branch1
         self.branch2 = branch2
+    def categorize(self, row):
+        splitFunction = None
+        if isinstance(self.splitPoint.val, int) or isinstance(self.splitPoint.val, float):
+            splitFunction = lambda row: row[self.splitPoint.key] >= self.splitPoint.val
+        else:
+            splitFunction = lambda row: row[self.splitPoint.key] != self.splitPoint.val
+        if splitFunction(row):
+            print(f"Categorized {row} by {self.splitPoint}: left")
+            return self.branch1.categorize(row)
+        else:
+            print(f"Categorized {row} by {self.splitPoint}: right")
+            return self.branch2.categorize(row)
     def __repr__(self):
         return f"{self.splitPoint} -- branch1: {self.branch1} \n -- branch2: {self.branch2}"
 
 
 class Leaf:
-    def __init__(self, data):
+    def __init__(self, data, targets):
         self.data = data
+        self.targets = targets
+    def categorize(self, row):
+        return valCounts(self.targets)
     def __repr__(self):
         return f"leaf with {len(self.data)} entries"
 
@@ -47,10 +61,10 @@ def doCreateTree(splitPoints, rows, targets):
 
 def createTree(splitPoints: List[KVPair], rows, targets, entropy):
     if len(rows) == 1 or len(splitPoints) == 0:
-        return Leaf(rows)
+        return Leaf(rows, targets)
     splitPoint, rows1, rows2, targ1, targ2, ent1, ent2 = split(splitPoints, rows, targets, entropy)
     if splitPoint is None:
-        return Leaf(rows)
+        return Leaf(rows, targets)
     print(f"splitting at {splitPoint}")
     newSplitPoints = [sp for sp in splitPoints if sp != splitPoint]
     tree1 = createTree(newSplitPoints, rows1, targ1, ent1)
@@ -132,13 +146,23 @@ if __name__ == '__main__':
         targets.append(row.pop(targetColumn))
         rows.append(row)
 
+    n = len(rows)
+    trainingRows = rows[0: int(0.5*n)]
+    trainingTargets = targets[0: int(0.5*n)]
+    validationRows = rows[int(0.5*n):]
+    validationTargets = targets[int(0.5*n):]
+
     splitPoints = []
-    for key in rows[0].keys():
-        colVals = [row[key] for row in rows]
+    for key in trainingRows[0].keys():
+        colVals = [row[key] for row in trainingRows]
         uniqueVals = unique(colVals)
         splitPoints += [KVPair(key, val) for val in uniqueVals]
 
-    tree = doCreateTree(splitPoints, rows, targets)
-    countPrintTree(tree)
+    tree = doCreateTree(splitPoints, trainingRows, trainingTargets)
+    
+    for i in range(1):
+        prediction = tree.categorize(validationRows[i])
+        realVal = validationTargets[i]
+        print(f"prediction: {prediction} -- real value: {realVal}")
 
 
