@@ -1,0 +1,4 @@
+
+
+def getRandomPaths(nrPaths):
+    pass
