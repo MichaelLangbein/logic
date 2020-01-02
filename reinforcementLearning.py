@@ -1,7 +1,5 @@
-class Agent:
-    def __init__(self, brain):
-        self.brain = brain
-
-    def act(self, environment):
-        pass
-
+"""
+    1. Agents interact according to their model
+        1.1. They use their model to query information from wikimedia
+    2. More successful models 
+"""
