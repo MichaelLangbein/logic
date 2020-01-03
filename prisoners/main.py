@@ -1,5 +1,4 @@
 from prisoners.players import Jesus, Satan, NiceTitForTat, MeanTitForTat, ForgivingTitForTat
-from prisoners.game import roundRobin, getRanking
 from prisoners.generations import playForNGenerations
 
 
@@ -19,6 +18,3 @@ player5 = ForgivingTitForTat(0.15)
 players = [player1, player2, player3, player4, player5]
 
 players = playForNGenerations(players, 1)
-ranking = getRanking(players)
-for rating, player in ranking:
-    print(f"sentence: {rating} --- player: {player}")

@@ -23,6 +23,9 @@ def drawNewGeneration(population):
 def playForNGenerations(population, nrGenerations):
     for _ in range(nrGenerations):
         roundRobin(*population)
+        ranking = getRanking(population)
+        for rating, player in ranking:
+            print(f"sentence: {rating} --- player: {player}")
         population = drawNewGeneration(population)
         print(f"+++++++++ population now consists of {population} ++++++++++++++++++++")
     return population

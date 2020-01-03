@@ -80,7 +80,7 @@ class ForgivingTitForTat(Player):
                 print(f"{self} chose to forgive!")
                 return 'cooperation'
             else:
-                return 'cooperation'
+                return 'treason'
 
     def newMatch(self):
         self.lastSentence = None
