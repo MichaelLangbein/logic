@@ -1,4 +1,4 @@
-from prisoners.players import Jesus, Satan, NiceTitForTat, MeanTitForTat, ForgivingTitForTat
+from prisoners.players import Jesus, Satan, NiceTitForTat, MeanTitForTat, ForgivingTitForTat, Tester
 from prisoners.generations import playForNGenerations
 
 
@@ -9,12 +9,13 @@ Jesus fares really well in an overall good population, but really bad among all 
 If we play this game over multiple generations, cooperating agents seem to take over.
 """
 
-
-player1 = Jesus()
-player2 = Satan()
-player3 = NiceTitForTat()
-player4 = MeanTitForTat()
-player5 = ForgivingTitForTat(0.15)
-players = [player1, player2, player3, player4, player5]
+players = [
+    Jesus(),
+    Satan(),
+    NiceTitForTat(),
+    MeanTitForTat(),
+    ForgivingTitForTat(0.15),
+    Tester()
+]
 
 players = playForNGenerations(players, 1)

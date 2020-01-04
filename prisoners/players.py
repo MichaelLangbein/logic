@@ -84,3 +84,28 @@ class ForgivingTitForTat(Player):
 
     def newMatch(self):
         self.lastSentence = None
+
+
+class Tester(Player):
+    def __init__(self):
+        super().__init__('Tester')
+        self.history = []
+
+    def getSentence(self, sentence):
+        self.lastSentence = sentence
+        super().getSentence(sentence)
+
+    def pickAction(self):
+        if len(self.history) == 0:
+            return 'treason'
+        else:
+            recentHistory = self.history[-3:]
+            longPiece = (recentHistory == [SENTENCE_BOTH_KEPT_QUIET for _ in range(3)])
+            if longPiece:
+                return 'treason'
+            else:
+                return 'cooperation'
+
+    def newMatch(self):
+        self.history = []
+    
