@@ -1,9 +1,11 @@
 # Reinforcement Learning
 
 ## Game
+    - add goals
+    - brains
     - add timer
-    - add newtownian physics
-    - add user-control?
+    - add score
+    - add user-control
 
 ## Logic
     - each player has a brain to control its actions

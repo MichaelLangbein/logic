@@ -13,4 +13,4 @@ class RandomBrain(Brain):
 class SimpleBrain(Brain):
     def choseDirection(self, player, environment):
         ball = findInstance(Ball, environment)
-        return normalize(player.x - ball.x)
+        return normalize(ball.x - player.x)
