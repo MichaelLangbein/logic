@@ -13,8 +13,6 @@ def inDebugMode():
 
 
 def stop(player: Player, field: Field):
-    # set back one step
-    player.x -= player.v 
     # stop movement
     player.v = np.array((0, 0))
     player.a = np.array((0, 0))

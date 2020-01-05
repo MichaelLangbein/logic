@@ -19,7 +19,7 @@ def playGame(players):
 
     screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
     field = Field()
-    ball = Ball((400, 250), 1)
+    ball = Ball((400, 250), 3)
     objects = [field, ball] + players
     
     running = True
@@ -61,8 +61,8 @@ def playGame(players):
 
 if __name__ == '__main__':
     playGame([
-        Player(np.array((750.0, 350.0)), 85, 100000, 'Andreas', 'blue', SimpleBrain()),
-        Player(np.array((650.0, 150.0)), 65, 100000, 'Max', 'blue', RandomBrain()),
-        Player(np.array((50.0, 350.0)), 65, 100000, 'Michael', 'red', RandomBrain()),
-        Player(np.array((150.0, 150.0)), 85, 100000, 'Julian', 'red', SimpleBrain())
+        Player(np.array((750.0, 350.0)), 75, 100000, 'Andreas', 'blue', SimpleBrain()),
+        Player(np.array((650.0, 150.0)), 75, 100000, 'Max', 'blue', SimpleBrain()),
+        Player(np.array((50.0, 350.0)), 75, 100000, 'Michael', 'red', SimpleBrain()),
+        Player(np.array((150.0, 150.0)), 75, 100000, 'Julian', 'red', SimpleBrain())
     ])

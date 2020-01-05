@@ -58,7 +58,7 @@ class GameObject:
 
 class Ball(GameObject):
     def __init__(self, x, m):
-        super().__init__('soccerball', x, m, 30.0)
+        super().__init__('soccerball', x, m, 50.0)
 
     def __repr__(self):
         return 'ball'
