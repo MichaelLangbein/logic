@@ -86,7 +86,7 @@ class Player(GameObject):
             imageName = 'player_red'
         else:
             imageName = 'player_blue'
-        super().__init__(imageName, x, m)
+        super().__init__(imageName, x, m, 30)
         self.F = F
         self.name = name
         self.team = team
