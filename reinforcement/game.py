@@ -1,8 +1,8 @@
 import pygame
 import numpy as np
 from reinforcement.helpers import collides, elasticCollision, outside, stop, bounce, touchesEdge
-from reinforcement.classes import Field, Ball, Player
-from reinforcement.brains import SimpleBrain, RandomBrain
+from reinforcement.classes import Field, Ball, Player, Goal, Counter, Timer
+from reinforcement.brains import SimpleBrain, RandomBrain, PlayerBrain
 from reinforcement.globals import SCREEN_HEIGHT, SCREEN_WIDTH
 import time
 
@@ -19,19 +19,23 @@ def playGame(players):
 
     screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
     field = Field()
+    counter = Counter()
+    timer = Timer(60)
+    goalRed = Goal('red', (0, SCREEN_HEIGHT / 2))
+    goalBlue = Goal('blue', (SCREEN_WIDTH, SCREEN_HEIGHT / 2))
     ball = Ball((400, 250), 1)
-    objects = [field, ball] + players
+    objects = [field, counter, timer, ball, goalBlue, goalRed] + players
     
     running = True
     fps = 20.0
     loopTime = 1.0 / fps
     deltaTime = 0.1
     while running:
-        startTime = time.perf_counter()
+        startTime = time.time()
 
         # Step 1: handle events
         for event in pygame.event.get():
-            pass
+            playerBrain.handleEvent(event)
 
         # Step 2: handle logic
         for player in players:
@@ -44,6 +48,12 @@ def playGame(players):
             bounce(ball, touchedEdge)
         if outside(ball, field):
             ballInMiddle(ball)
+        if collides(ball, goalRed):
+            counter.increaseScore('blue')
+            ballInMiddle(ball)
+        if collides(ball, goalBlue):
+            counter.increaseScore('red')
+            ballInMiddle(ball)
         for obj in objects:
             obj.update(deltaTime, objects)
         
@@ -53,16 +63,23 @@ def playGame(players):
             obj.render(screen)
         pygame.display.flip()
 
-        endTime = time.perf_counter()
+        # Step 4: sleep
+        endTime = time.time()
         deltaTime = endTime - startTime
         timeRemaining = loopTime - deltaTime
-        time.sleep(timeRemaining)
+        if timeRemaining > 0.00001:
+            time.sleep(timeRemaining)
+
+        # Step 5: stopcondition
+        if timer.seconds < 0.0:
+            running = False
 
 
 if __name__ == '__main__':
+    playerBrain = PlayerBrain()
     playGame([
-        Player(np.array((750.0, 350.0)), 75, 100000, 200, 'Andreas', 'blue', SimpleBrain()),
-        Player(np.array((650.0, 150.0)), 65, 150000, 400, 'Max', 'blue', SimpleBrain()),
-        Player(np.array((50.0, 350.0)), 65, 100000, 300, 'Michael', 'red', SimpleBrain()),
-        Player(np.array((150.0, 150.0)), 75, 200000, 200, 'Julian', 'red', SimpleBrain())
+        Player(np.array((750.0, 350.0)), 75, 500000, 400, 'Andreas', 'blue', SimpleBrain()),
+        Player(np.array((650.0, 150.0)), 65, 500000, 600, 'Max', 'blue', SimpleBrain()),
+        Player(np.array((50.0, 350.0)), 65, 500000, 500, 'Michael', 'red', playerBrain),
+        Player(np.array((150.0, 150.0)), 75, 500000, 400, 'Julian', 'red', SimpleBrain())
     ])

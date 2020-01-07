@@ -3,10 +3,12 @@ import numpy as np
 from reinforcement.globals import SCREEN_HEIGHT, SCREEN_WIDTH
 from reinforcement.geometry import angle, normalize, magnitude
 
+pygame.font.init()
+font = pygame.font.SysFont('chalkduster.ttf', 72)
+
 
 def direction(arr):
     return normalize(arr)
-
 
 
 class GameObject:
@@ -47,7 +49,6 @@ class GameObject:
         return 0.0
 
 
-
 class Ball(GameObject):
     def __init__(self, x, m):
         super().__init__('soccerball', x, m, 50.0)
@@ -65,6 +66,66 @@ class Field(GameObject):
 
     def __repr__(self):
         return 'field'
+
+
+class Goal(GameObject):
+    def __init__(self, teamName, x):
+        self.teamName = teamName
+        super().__init__('goal', x, 0)
+
+    def update(self, deltat, environment):
+        pass
+
+    def __repr__(self):
+        return f"goal {self.teamName}"
+
+
+class Timer(GameObject):
+    def __init__(self, seconds):
+        self.delta = 0.0
+        self.seconds = seconds
+        self.x = np.array((SCREEN_WIDTH / 2, SCREEN_HEIGHT * 1 / 8))
+        self.updateText()
+
+    def updateText(self):
+        text = f"{int(self.seconds)}"
+        self.image = font.render(text, True, (255, 0, 0))
+        self.moveRect()
+
+    def update(self, deltat, environment):
+        self.delta += deltat
+        self.seconds -= deltat
+        if self.delta > 1.0:
+            self.updateText()
+            self.delta = 0
+
+    def __repr__(self):
+        return 'timer'
+
+
+class Counter(GameObject):
+    def __init__(self):
+        self.score = {
+            'red': 0,
+            'blue': 0
+        }
+        self.x = np.array((SCREEN_WIDTH / 2, SCREEN_HEIGHT * 7 / 8))
+        self.updateText()
+
+    def updateText(self):
+        text = f"{self.score['red']} : {self.score['blue']}"
+        self.image = font.render(text, True, (255, 0, 0))
+        self.moveRect()
+
+    def increaseScore(self, teamName):
+        self.score[teamName] += 1
+        self.updateText()
+
+    def update(self, deltat, environment):
+        pass
+
+    def __repr__(self):
+        return 'counter'
 
 
 class Brain:
@@ -88,8 +149,7 @@ class Player(GameObject):
     def update(self, deltat, environment):
         newDir = self.brain.choseDirection(self, environment)
         F = self.F \
-            * (1.0 - magnitude(self.v) / self.maxV) \
-            * (1.0 + angle(self.v, newDir) / np.pi)
+            * (1.0 - magnitude(self.v) / self.maxV)
         self.a = (F / self.m) * newDir
         super().update(deltat, environment)
 
