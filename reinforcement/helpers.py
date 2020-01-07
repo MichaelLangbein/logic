@@ -1,5 +1,6 @@
 import numpy as np
 from reinforcement.classes import GameObject, Field, Player, Ball
+from reinforcement.geometry import magnitude, angle, normalize, innerProd
 import time
 import sys
 
@@ -11,29 +12,22 @@ def inDebugMode():
     else:
         return True
 
-
 def stop(player: Player, field: Field):
     # stop movement
     player.v = np.array((0, 0))
     player.a = np.array((0, 0))
 
-
+            
 def bounce(ball: Ball, direction):
     if direction == 'L' or direction == 'R':
         ball.v[0] = - ball.v[0]
     if direction == 'T' or direction == 'B':
         ball.v[1] = - ball.v[1]
 
-
-def normalize(arr):
-    return arr / magnitude(arr)
-
-
 def findInstance(cls, lst):
     for entry in lst:
         if isinstance(entry, cls):
             return entry
-
 
 def touchesEdge(obj1, obj2):
     l1 = obj1.rect.left
@@ -56,18 +50,10 @@ def touchesEdge(obj1, obj2):
         return 'T'
     return None
 
-
 def intersects(obj1: GameObject, obj2: GameObject):
     if obj1.rect.colliderect(obj2.rect):
         return True
     return False
-
-
-def angle(arr1, arr2):
-    d = innerProd(arr1, arr2)
-    n = magnitude(arr1) * magnitude(arr2)
-    return np.arccos((d/n))
-
 
 def facing(obj1: GameObject, obj2: GameObject):
     directionMovement = obj1.v
@@ -99,18 +85,8 @@ def collides(obj1: GameObject, obj2: GameObject):
         return True
     return False
 
-
 def outside(obj1, obj2):
     return not intersects(obj1, obj2)
-
-
-def innerProd(arr1, arr2):
-    return np.inner(arr1, arr2)
-
-
-def magnitude(arr):
-    return np.sqrt(arr[0]**2 + arr[1]**2)
-
 
 def elasticCollision(obj1: GameObject, obj2: GameObject):
     deltaPos = obj1.x - obj2.x

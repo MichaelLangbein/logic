@@ -1,20 +1,12 @@
 import pygame
 import numpy as np
 from reinforcement.globals import SCREEN_HEIGHT, SCREEN_WIDTH
-
-
-def magnitude(arr):
-    return np.sqrt(arr[0]**2 + arr[1]**2)
+from reinforcement.geometry import angle, normalize, magnitude
 
 
 def direction(arr):
     return normalize(arr)
 
-
-def normalize(arr):
-    if arr[0] == 0 and arr[1] == 0:
-        return arr
-    return arr / magnitude(arr)
 
 
 class GameObject:
@@ -81,20 +73,24 @@ class Brain:
 
 
 class Player(GameObject):
-    def __init__(self, x, m, F, name, team, brain: Brain):
+    def __init__(self, x, m, F, maxV, name, team, brain: Brain):
         if team == 'red':
             imageName = 'player_red'
         else:
             imageName = 'player_blue'
         super().__init__(imageName, x, m, 30)
         self.F = F
+        self.maxV = maxV
         self.name = name
         self.team = team
         self.brain = brain
 
     def update(self, deltat, environment):
         newDir = self.brain.choseDirection(self, environment)
-        self.a = (self.F / self.m) * newDir
+        F = self.F \
+            * (1.0 - magnitude(self.v) / self.maxV) \
+            * (1.0 + angle(self.v, newDir) / np.pi)
+        self.a = (F / self.m) * newDir
         super().update(deltat, environment)
 
     def __repr__(self):
