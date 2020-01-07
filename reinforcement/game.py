@@ -68,6 +68,7 @@ def playGame(players):
         deltaTime = endTime - startTime
         timeRemaining = loopTime - deltaTime
         if timeRemaining > 0.00001:
+            timer.update(timeRemaining, objects)
             time.sleep(timeRemaining)
 
         # Step 5: stopcondition
