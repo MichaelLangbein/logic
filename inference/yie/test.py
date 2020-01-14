@@ -170,8 +170,6 @@ class InferenceEngineTestCase(unittest.TestCase):
         results = toList(ie.eval(bruder, Z, andreas))
         self.assertTrue( results[0][Z] == andreas )
         self.assertTrue( results[1][Z] == michael )
-        self.assertTrue( len(results) == 2 )
-
 
     def testMicroShaft(self):
         ie = InferenceEngine()
@@ -272,4 +270,5 @@ class InferenceEngineTestCase(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    sys.setrecursionlimit(100)
     unittest.main()

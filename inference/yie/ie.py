@@ -27,6 +27,12 @@ class Rule:
         self.condition = condition
         self.consequence = consequence
 
+    def __eq__(self, other):
+        if isinstance(other, Rule):
+            if other.condition == self.condition and other.consequence == self.consequence:
+                return True
+        return False
+
     def __repr__(self):
         return f"if {self.condition} => {self.consequence}"
 
@@ -74,6 +80,8 @@ def matches(vQuery, fact):
     tDict = {}
     for vw, fw in zip(vQuery, fact):
         if isinstance(vw, Variable):
+            if vw in tDict and fw != tDict[vw]:  # a variable must not be set with two different values.
+                return False
             tDict[vw] = fw
         elif vw != fw:
             return False
@@ -85,6 +93,7 @@ class InferenceEngine:
         self.facts = []
         self.rules = []
         self.learned = []
+        self.ongoingRules = []
 
     def addFact(self, *fact):
         if fact not in self.facts:
@@ -112,7 +121,7 @@ class InferenceEngine:
                 tDict = matches(rule.consequence, query)
                 if tDict:
                     substRule = Rule(substitute(rule.condition, tDict), query)
-                    self.addLearned(query)
+                    self.addLearned(*query)
                     yield substRule
 
     def eval(self, *query):
@@ -141,8 +150,14 @@ class InferenceEngine:
             for tDict in self.matchInFacts(*query):
                 yield tDict
             for rule in self.matchInRules(*query):
-                for tDict in self.eval(*(rule.condition)):
-                    yield tDict
+                if rule not in self.ongoingRules:
+                    self.ongoingRules.append(rule)
+                    for tDict in self.eval(*(rule.condition)):
+                        yield tDict
+                    self.ongoingRules.remove(rule)
+                else:
+                    print("break because rule already going on.")
+
 
     def evalAndSubstitute(self, *query):
         for tDict in self.eval(*query):

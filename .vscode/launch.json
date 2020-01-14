@@ -4,9 +4,14 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
         {
-            "name": "Python: Module",
+            "name": "Inference",
+            "type": "python",
+            "request": "launch",
+            "module": "inference.yie.test"
+        },
+        {
+            "name": "Reinforcement",
             "type": "python",
             "request": "launch",
             "module": "reinforcement.game"
