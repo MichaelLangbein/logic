@@ -1,4 +1,5 @@
 from kanren import run, eq, var, conde, membero, Relation, facts
+from plotly.geometry import BaseGeometry
 
 
 x = var('x')
@@ -12,13 +13,11 @@ results = run(1, x, mortal(x))
 print(results)
 
 
-marriedRel = Relation()
-facts(marriedRel, ['Mickey', 'Minnie'])
-
-def marriedDer(x, y):
-    return conde([marriedRel(x, y)],
-                 [marriedDer, y, x])
+class GeoObject:
+    def __init__(self, name, geometry):
+        self.name = name
+        self.geometry = geometry
 
 
-results = run(5, x, marriedDer(x, 'Mickey'))
-print(results)
+def intersecto(go1, go2):
+    return conde([go1.geometry.intersects(go2.geometry)])
