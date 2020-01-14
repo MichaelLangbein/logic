@@ -1,3 +1,4 @@
+from inference.yie.tabling import tabling
 
 
 class Object:
@@ -116,14 +117,7 @@ class InferenceEngine:
                     self.addLearned(query)
                     yield substRule
 
-    def teval(self, *query):
-        """
-            eval with trace.
-            Trace is analysed to find loops. 
-            Looping paths are then cancelled.
-        """
-        pass
-
+    @tabling
     def eval(self, *query):
         print(f"now evaluating: {query}")
         operator = query[0]

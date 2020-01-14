@@ -1,8 +1,8 @@
 import unittest
 import sys
 import io
-from ie import InferenceEngine, Object, Relation, Variable, Rule
-from helpers import toList
+from inference.yie.ie import InferenceEngine, Object, Relation, Variable, Rule
+from inference.yie.helpers import toList
 
 
 X = Variable('X')
