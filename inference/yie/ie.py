@@ -1,5 +1,3 @@
-from inference.yie.tabling import tabling
-
 
 class Object:
     def __init__(self, description):
@@ -117,7 +115,6 @@ class InferenceEngine:
                     self.addLearned(query)
                     yield substRule
 
-    @tabling
     def eval(self, *query):
         print(f"now evaluating: {query}")
         operator = query[0]
