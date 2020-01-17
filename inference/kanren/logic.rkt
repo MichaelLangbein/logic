@@ -18,13 +18,6 @@
 ;; ... translate let to ==.
 
 
-;; Test backend
-(run* (q)
-      (== (cons 1 q) (cons 1 2))) ;; => (2) ?
-(run* (q)
-      (== '(1 q) '(1 2))) ;; => (2) ?
-
-
 (define trueg
   (lambda (frame) frame))
 
@@ -77,14 +70,12 @@
                        (cdro l rest)
                        (listo rest))))))
 
-
 (define lol?
   (lambda (l)
     (cond
       ((null? l) #t)
       ((list? (car l)) (lol? (cdr l)))
       (else #f))))
-
 
 (define lolo
   (lambda (l)
@@ -117,8 +108,6 @@
   (lambda (list)
     (listofo twinso list)))
 
-
-
 (define eq-car?
   (lambda (x list)
     (eq? x (car list))))
@@ -129,7 +118,6 @@
       ((null? list) #f)
       ((eq-car? m list) #t)
       (else (member? m (cdr list))))))
-
 
 (define eq-caro
   (lambda (x list)
@@ -143,15 +131,95 @@
              (cdro list body)
              (membero m body))))))
 
+(define memo
+  (lambda (m list rest)
+    (conde
+     ((eq-caro list m) (== list rest))
+     ((fresh (body)
+             (cdro list body)
+             (memo m body rest))))))
 
-(run 1 (x)
-       (membero "e" '("pasta" x "fagioli")))
+;; remove-member
+(define rember
+  (lambda (x l)
+    (cond ((null? l) '())
+          ((eq-car? x l) (cdr l))
+          ((cons (car l) (rember x (cdr l)))))))
+
+(define rembero
+  (lambda (x l out)
+    (conde ((nullo l) (== '() out))
+           ((eq-caro x l) (cdro l out))
+           ((fresh (head body rest)
+                   (conso head body l)
+                   (rembero x body rest)
+                   (conso head rest out))))))
+
+
+(define append
+  (lambda (l1 l2)
+    (cond ((null? l1) l2)
+          ((cons (car l1) (append (cdr l1) l2))))))
+
+(define appendo
+  (lambda (l1 l2 l3)
+    (conde ((nullo l1) (== l3 l2))
+           ((fresh (head1 body1 apd)
+                   (conso head1 body1 l1)
+                   (appendo body1 l2 apd)
+                   (conso head1 apd l3))))))
+
+;; equivalent to list, but the last element is not '(), but the last element of the inputlist
+(define dpair
+    (lambda (lst)
+      (cond ((null? (cdr lst)) (car lst))
+            ((cons (car lst) (dpair (cdr lst)))))))
+
+
+
+(define anyo
+  (lambda (g)
+    (conde
+     (g)
+     ((anyo g)))))
+
+;; nevero can fail any number of times, whereas falseg can only fail once.
+(define neverg (anyo falseg))
+
+;; alwayso can succeed any number of times, whereas trueg can only succeed once.
+(define alwaysg (anyo trueg))
+
+;; salo: succeed-at-lest-once
 
 
 
 
+;; Test backend
+;; (run* (q)
+;;       (== (list 1 q) (list 1 2))) ;; => (2) ?
+;; (run* (q)
+;;       (== '(1 q) '(1 2))) ;; => (2) ?
+;; 
+;; (define printo
+;;   (lambda (sth)
+;;     (print sth)
+;;     trueg))
+;; 
+;; (run* (q)
+;;       (printo '(1 q))
+;;       (printo '(1 'q))
+;;       (printo (list 1 q)))
+;; 
 
 
-
+;; (define eval
+;;   (lambda (query)
+;;     (run* (query)
+;;           (conde
+;;            ((membero query facts))
+;;            ((fresh (rule)
+;;                    (membero rule rules)
+;;                    (eval rule.condition)))))))
+ 
 
 
