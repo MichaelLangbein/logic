@@ -1,7 +1,7 @@
 #lang racket
 
 
-(define empty-subst '())
+(define empty-substs '())
 
 (define extend-substs
   (lambda (key val susbts)
@@ -37,5 +37,27 @@
                             (walk* (car variable) substitutions)
                             (walk* (cdr variable) substitutions)))
         (else variable)))))
-                           
 
+
+;; ----------------------------------------------------------------------------------------------
+;; goals take arguments and a list of substitutions and augment/reduce that list of substitutions
+;; ----------------------------------------------------------------------------------------------
+
+
+(define trueG
+  (lambda (substs)
+    substs))
+
+(define falseG
+  (lambda (substs)
+    #f))
+
+(define unifyG
+  ;; the goal behind the relation (== a b)
+  (lambda (a b substs)
+    (let ((a (walk a substs)
+          (b (walk b substs))        ;; resolve as far as possible
+      (cond 
+        ((eq? a b) substs)                            ;; (== 1 1) does not change substs, neither does (== x x)
+        ((var? a) (extend-substs a b substs))         ;; (== x 1) adds (x . 1) to the substs
+        ((var? b) (extend-substs b a substs))))))))   ;; (== 1 x) adds (x . 1) to the substs
