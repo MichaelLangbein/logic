@@ -1,5 +1,5 @@
 import unittest
-from inference.kanren.pykanren import Var, Goal, Relation, run, eqR, andR, orR
+from inference.kanren.pykanren import Var, run, eqR, andR, orR
 
 
 class InferenceEngineTestCase(unittest.TestCase):
@@ -12,4 +12,10 @@ class InferenceEngineTestCase(unittest.TestCase):
 
     
     def testAnd(self):
-        pass
+        results = run(
+            andR(
+                eqR(Var('x'), Var('y')),
+                eqR(Var('y'), 1)
+            )
+        )
+        self.assertTrue( results == [{'x': 1, 'y': 1}] )

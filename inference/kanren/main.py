@@ -12,7 +12,7 @@ from typing import Iterator, Callable, Any, List
    - a goal is a function nameG: subs -> subs[] 
      That is a function that maps one substitution to a stream of zero or more substitutions.
   
-  Relations: (functions ending in 'o')
+  Relations: (functions ending in 'R')
    - a relation is a function that takes 0 or more variables and returns a goal:
 """
 
