@@ -34,29 +34,40 @@ def emptyStream() -> SubstStream:
 
 
 
-def evalGoals(subst: Subst, goals: List[Goal]) -> SubstStream:
+def serial(subst: Subst, goals: List[Goal]) -> SubstStream:
     firstGoal = goals[0]
     restGoals = goals[1:]
     stream = firstGoal(subst)
     for s in stream:
         if restGoals:
-            sstream = evalGoals(s, restGoals)
+            sstream = serial(s, restGoals)
             for ss in sstream:
                 yield ss
         else:
             yield s
 
 
+def parallel(subst: Subst, goals: List[Goal]) -> SubstStream:
+    for goal in goals:
+        stream = goal(subst)
+        for s in stream:
+            yield s
+
+
 def andR(goals: List[Goal]) -> Goal:
     def g(subst: Subst) -> SubstStream:
-        stream = evalGoals(subst, *goals)
+        stream = serial(subst, *goals)
         for s in stream:
             yield s
     return g
 
 
 def orR(goals: List[Goal]) -> Goal:
-    pass
+    def g(subst: Subst) -> SubstStream:
+        stream = parallel(subst, *goals)
+        for s in stream:
+            yield s
+    return g
 
 
 def eqR(termA, termB) -> Goal:
