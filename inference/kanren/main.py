@@ -1,5 +1,5 @@
 from math import inf
-from typing import Iterator, Callable, Any, List
+from typing import Iterator, Callable, Any, List, Union
 
 """
   Variables:
@@ -19,6 +19,14 @@ from typing import Iterator, Callable, Any, List
 class Var:
     def __init__(self, name):
         self.name = name
+    def __eq__(self, other):
+        return isinstance(other, Var) and other.name == self.name
+    def __repr__(self):
+        return self.name
+    def __str__(self):
+        return self.name
+    def __hash__(self):
+        return hash(self.name)
 
 Subst = dict
 
@@ -29,54 +37,95 @@ Goal = Callable[[Subst], SubstStream]
 Relation = Callable[[List[Any]], Goal]
 
 
+def isVar(x):
+    return isinstance(x, Var)
+
+
 def emptyStream() -> SubstStream:
     yield {}
 
 
+def walk(var: Var, subst: Subst) -> Any:
+    if var in subst:
+        val = subst[var]
+        if isVar(val):
+            return walk(val, subst)
+        else:
+            return val
+    else:
+        return var
 
-def serial(subst: Subst, goals: List[Goal]) -> SubstStream:
+
+def reify(subst: Subst) -> Subst:
+    for key in subst:
+        val = subst[key]
+        if isVar(val):
+            val = walk(val, subst)
+            if not isVar(val):
+                subst[key] = val
+    return subst
+
+
+def serial(subst: Subst, *goals: List[Goal]) -> SubstStream:
     firstGoal = goals[0]
     restGoals = goals[1:]
     stream = firstGoal(subst)
     for s in stream:
         if restGoals:
-            sstream = serial(s, restGoals)
+            sstream = serial(s, *restGoals)
             for ss in sstream:
                 yield ss
         else:
             yield s
 
 
-def parallel(subst: Subst, goals: List[Goal]) -> SubstStream:
+def parallel(subst: Subst, *goals: List[Goal]) -> SubstStream:
     for goal in goals:
         stream = goal(subst)
         for s in stream:
             yield s
 
 
-def andR(goals: List[Goal]) -> Goal:
-    def g(subst: Subst) -> SubstStream:
+def andR(*goals: List[Goal]) -> Goal:
+    def andG(subst: Subst) -> SubstStream:
         stream = serial(subst, *goals)
         for s in stream:
             yield s
-    return g
+    return andG
 
 
-def orR(goals: List[Goal]) -> Goal:
-    def g(subst: Subst) -> SubstStream:
+def orR(*goals: List[Goal]) -> Goal:
+    def orG(subst: Subst) -> SubstStream:
         stream = parallel(subst, *goals)
         for s in stream:
             yield s
-    return g
+    return orG
 
 
-def eqR(termA, termB) -> Goal:
-    pass
+def eqR(a, b) -> Goal:
+    def eqG(subst: Subst) -> SubstStream:
+        nonlocal a, b
+        if isVar(a):
+            a = walk(a, subst)
+        if isVar(b):
+            b = walk(b, subst)
+        if (a == b):
+            yield subst
+        elif isVar(a):
+            subst[a] = b
+            yield subst
+        elif isVar(b):
+            subst[b] = a
+            yield subst
+        else:
+            yield {}
+    return eqG
 
 
 def evalGoal(goal: Goal, subst: Subst):
     stream = goal(subst)
     for s in stream:
+        s = reify(s)
         yield s
 
 

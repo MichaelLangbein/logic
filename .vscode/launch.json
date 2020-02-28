@@ -8,7 +8,7 @@
             "name": "Inference",
             "type": "python",
             "request": "launch",
-            "module": "inference.yie.test"
+            "module": "inference.kanren.test"
         },
         {
             "name": "Reinforcement",
