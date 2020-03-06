@@ -6,7 +6,7 @@ class InferenceEngineTestCase(unittest.TestCase):
 
     @unittest.skip("known to work ...")
     def testAddition(self):
-        self.assertTrue( 1 + 1 == 2 )
+        self.assertEqual( 1 + 1, 2 )
 
 
     def testSimpleEquals(self):
@@ -14,13 +14,13 @@ class InferenceEngineTestCase(unittest.TestCase):
         results = run([x], 
             eqR("someVal", "someVal")
         )
-        self.assertTrue( results == [{}] )
+        self.assertEqual( results, [{}] )
 
         y = Var('y')
         results2 = run([y], 
             eqR("someVal", "otherVal")
         )
-        self.assertTrue( results2 == [] )
+        self.assertEqual( results2, [] )
 
 
     def testEquals(self):
@@ -28,7 +28,7 @@ class InferenceEngineTestCase(unittest.TestCase):
         results = run([a], 
             eqR(1, a)
         )
-        self.assertTrue( results == [{a: 1}] )
+        self.assertEqual( results, [{a: 1}] )
 
 
     def testAnd(self):
@@ -40,7 +40,7 @@ class InferenceEngineTestCase(unittest.TestCase):
                 eqR(y, 1)
             )
         )
-        self.assertTrue( results == [{x: 1, y: 1}] )
+        self.assertEqual( results, [{x: 1, y: 1}] )
 
         results2 = run([x],
             andR(
@@ -48,7 +48,7 @@ class InferenceEngineTestCase(unittest.TestCase):
                 eqR(y, 1)
             )
         )
-        self.assertTrue( results2 == [{x: 1}] )
+        self.assertEqual( results2, [{x: 1}] )
 
 
     def testContradiction(self):
@@ -59,7 +59,7 @@ class InferenceEngineTestCase(unittest.TestCase):
                 eqR(x, 2)
             )
         )
-        self.assertTrue( results == [{}] )
+        self.assertEqual( results, [] )
 
 
     def testFusion(self):
@@ -68,14 +68,25 @@ class InferenceEngineTestCase(unittest.TestCase):
         results = run([x], 
             eqR(x, y)
         )
-        self.assertTrue( results == [{x: y}] )
+        self.assertEqual( results, [{x: y}] )
 
 
-    def testPeas(self):
+    def testLists(self):
         x = Var('x')
         results = run([x],
-            eqR(["pea", "pod"], ["pea", x])
+            eqR(["pea", "pod"],  x)
         )
+        self.assertEqual( results, [{x: ["pea", "pod"]}] )
+
+    
+    def testLists2(self):
+        x = Var('x')
+        results = run([x],
+            eqR(["pea", "pod"],  ["pea", x])
+        )
+        self.assertEqual( results, [{x: "pod"}] )
+
+        
 
 
 

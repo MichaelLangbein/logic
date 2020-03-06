@@ -1,20 +1,6 @@
 from math import inf
 from typing import Iterator, Callable, Any, List, Union
 
-"""
-  Variables:
-   - a variable is *fresh* when it has no association.
-  
-  Substitutions:
-   - a substitution is a frame: [{x: 1, y: 'v', z: x}]
-  
-  Goals: (functions ending in 'G')
-   - a goal is a function nameG: subs -> subs[] 
-     That is a function that maps one substitution to a stream of zero or more substitutions.
-  
-  Relations: (functions ending in 'R')
-   - a relation is a function that takes 0 or more variables and returns a goal:
-"""
 
 class Var:
     def __init__(self, name):
@@ -28,9 +14,12 @@ class Var:
     def __hash__(self):
         return hash(self.name)
 
-Subst = dict
 
-SubstStream = Iterator[dict]
+falseSubst = None
+
+Subst = Union[dict, falseSubst]
+
+SubstStream = Iterator[Subst]
 
 Goal = Callable[[Subst], SubstStream]
 
@@ -57,6 +46,8 @@ def walk(var: Var, subst: Subst) -> Any:
 
 
 def reify(var: Var, subst: Subst) -> Subst:
+    if subst == falseSubst:
+        return subst
     if not var in subst:
         return subst
     val = subst[var]
@@ -72,6 +63,8 @@ def serial(subst: Subst, *goals: List[Goal]) -> SubstStream:
     restGoals = goals[1:]
     stream = firstGoal(subst)
     for s in stream:
+        if s == falseSubst:
+            yield s
         if restGoals:
             sstream = serial(s, *restGoals)
             for ss in sstream:
@@ -118,28 +111,38 @@ def eqR(a, b) -> Goal:
         elif isVar(b):
             subst[b] = a
             yield subst
+        elif isinstance(a, list) and isinstance(b, list):
+            subGoals = []
+            for sa, sb in zip(a, b):
+                subGoals.append(eqR(sa, sb))
+            for s in serial(subst, *subGoals):
+                yield s
         else:
-            yield {}
+            yield falseSubst
     return eqG
 
 
 def evalGoal(goal: Goal, targetVars: List[Var], subst: Subst):
     stream = goal(subst)
     for s in stream:
-        for v in targetVars:
-            s = reify(v, s)
-        slimS = {}
-        for v in targetVars:
-            if v in s:
-                slimS[v] = s[v]
-        yield slimS
+        if s == falseSubst:
+            yield falseSubst
+        else:
+            for v in targetVars:
+                s = reify(v, s)
+            slimS = {}
+            for v in targetVars:
+                if v in s:
+                    slimS[v] = s[v]
+            yield slimS
 
 
 def take(n, stream):
     out = []
     i = -1
     for s in stream:
-        out.append(s)
+        if s is not falseSubst:
+            out.append(s)
         i += 1
         if i >= n:
             break
