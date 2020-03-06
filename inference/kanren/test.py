@@ -9,6 +9,20 @@ class InferenceEngineTestCase(unittest.TestCase):
         self.assertTrue( 1 + 1 == 2 )
 
 
+    def testSimpleEquals(self):
+        x = Var('x')
+        results = run([x], 
+            eqR("someVal", "someVal")
+        )
+        self.assertTrue( results == [{}] )
+
+        y = Var('y')
+        results2 = run([y], 
+            eqR("someVal", "otherVal")
+        )
+        self.assertTrue( results2 == [] )
+
+
     def testEquals(self):
         a = Var('a')
         results = run([a], 
@@ -46,6 +60,24 @@ class InferenceEngineTestCase(unittest.TestCase):
             )
         )
         self.assertTrue( results == [{}] )
+
+
+    def testFusion(self):
+        x = Var('x')
+        y = Var('y')
+        results = run([x], 
+            eqR(x, y)
+        )
+        self.assertTrue( results == [{x: y}] )
+
+
+    def testPeas(self):
+        x = Var('x')
+        results = run([x],
+            eqR(["pea", "pod"], ["pea", x])
+        )
+
+
 
 if __name__ == '__main__':
     unittest.main()
