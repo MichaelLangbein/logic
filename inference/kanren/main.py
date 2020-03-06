@@ -112,9 +112,7 @@ def eqR(a, b) -> Goal:
             subst[b] = a
             yield subst
         elif isinstance(a, list) and isinstance(b, list):
-            subGoals = []
-            for sa, sb in zip(a, b):
-                subGoals.append(eqR(sa, sb))
+            subGoals = [eqR(sa, sb) for sa, sb in zip(a, b)]
             for s in serial(subst, *subGoals):
                 yield s
         else:
