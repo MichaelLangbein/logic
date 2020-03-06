@@ -57,6 +57,8 @@ def walk(var: Var, subst: Subst) -> Any:
 
 
 def reify(var: Var, subst: Subst) -> Subst:
+    if not var in subst:
+        return subst
     val = subst[var]
     if isVar(val):
         val = walk(val, subst)
@@ -126,7 +128,10 @@ def evalGoal(goal: Goal, targetVars: List[Var], subst: Subst):
     for s in stream:
         for v in targetVars:
             s = reify(v, s)
-        slimS = {key: s[key] for key in targetVars}
+        slimS = {}
+        for v in targetVars:
+            if v in s:
+                slimS[v] = s[v]
         yield slimS
 
 
