@@ -56,13 +56,12 @@ def walk(var: Var, subst: Subst) -> Any:
         return var
 
 
-def reify(subst: Subst) -> Subst:
-    for key in subst:
-        val = subst[key]
-        if isVar(val):
-            val = walk(val, subst)
-            if not isVar(val):
-                subst[key] = val
+def reify(var: Var, subst: Subst) -> Subst:
+    val = subst[var]
+    if isVar(val):
+        val = walk(val, subst)
+        if not isVar(val):
+            subst[var] = val
     return subst
 
 
@@ -122,11 +121,13 @@ def eqR(a, b) -> Goal:
     return eqG
 
 
-def evalGoal(goal: Goal, subst: Subst):
+def evalGoal(goal: Goal, targetVars: List[Var], subst: Subst):
     stream = goal(subst)
     for s in stream:
-        s = reify(s)
-        yield s
+        for v in targetVars:
+            s = reify(v, s)
+        slimS = {key: s[key] for key in targetVars}
+        yield slimS
 
 
 def take(n, stream):
@@ -140,10 +141,10 @@ def take(n, stream):
     return out
 
 
-def runN(n, goal: Goal):
-    subsStr = evalGoal(goal, {})
+def runN(n, vars: List[Var], goal: Goal):
+    subsStr = evalGoal(goal, vars, {})
     return take(n, subsStr)
 
 
-def run(goal: Goal):
-    return runN(inf, goal)
+def run(vars: List[Var], goal: Goal):
+    return runN(inf, vars, goal)

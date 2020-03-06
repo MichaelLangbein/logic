@@ -6,7 +6,7 @@ class InferenceEngineTestCase(unittest.TestCase):
 
     def testEquals(self):
         a = Var('a')
-        results = run(
+        results = run([a], 
             eqR(1, a)
         )
         self.assertTrue( results == [{a: 1}] )
@@ -15,13 +15,21 @@ class InferenceEngineTestCase(unittest.TestCase):
     def testAnd(self):
         x = Var('x')
         y = Var('y')
-        results = run(
+        results = run([x, y],
             andR(
                 eqR(x, y),
                 eqR(y, 1)
             )
         )
         self.assertTrue( results == [{x: 1, y: 1}] )
+
+        results2 = run([x],
+            andR(
+                eqR(x, y),
+                eqR(y, 1)
+            )
+        )
+        self.assertTrue( results2 == [{x: 1}] )
 
 
 if __name__ == '__main__':
