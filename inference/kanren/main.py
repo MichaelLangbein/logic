@@ -2,6 +2,9 @@ from math import inf
 from typing import Iterator, Callable, Any, List, Union
 
 
+
+
+
 class Var:
     def __init__(self, name):
         self.name = name
@@ -21,8 +24,10 @@ Subst = Union[dict, falseSubst]
 
 SubstStream = Iterator[Subst]
 
+# A goal is a reified relation - the relation's parameters & variables are set, now the goal can be used to stream substitutions through.
 Goal = Callable[[Subst], SubstStream]
 
+# A relation is a function of arguments, of which some or all may be variables
 Relation = Callable[[List[Any]], Goal]
 
 
@@ -43,6 +48,13 @@ def walk(var: Var, subst: Subst) -> Any:
             return val
     else:
         return var
+
+
+def walkx(x: Any, subst: Subst) -> Any:
+    if isVar(x):
+        return walk(x, subst)
+    else:
+        return x
 
 
 def reify(var: Var, subst: Subst) -> Subst:
@@ -98,11 +110,8 @@ def orR(*goals: List[Goal]) -> Goal:
 
 def eqR(a, b) -> Goal:
     def eqG(subst: Subst) -> SubstStream:
-        nonlocal a, b
-        if isVar(a):
-            a = walk(a, subst)
-        if isVar(b):
-            b = walk(b, subst)
+        a = walkx(a, subst)
+        b = walkx(b, subst)
         if (a == b):
             yield subst
         elif isVar(a):
