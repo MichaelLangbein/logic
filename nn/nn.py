@@ -33,6 +33,7 @@ class Layer:
 
 class FullyConnectedLayer(Layer):
     def __init__(self, inputs: int, outputs: int):
+        self.i = Variable(np.random.random(inputs))
         self.W = Variable(np.random.random((inputs, outputs)))
 
     def setI(self, i: Node):
@@ -89,8 +90,7 @@ class NN:
         return out
 
     def backward(self, input: np.array, trueVal: np.array):
-        inputV = Variable(input)
-        self.layer0.setI(inputV)
+        self.layer0.setI(Variable(input))
         E = SSE(self.layerL.y(), trueVal)
 
         dE_dx_l = E.diff(self.layerL.x)
