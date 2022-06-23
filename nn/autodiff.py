@@ -26,12 +26,13 @@ class Variable(Node):
         return self.value
 
     def diff(self, variable: Node):
-        if len(self.value.shape) > 1:
-            raise Exception("Don't know how do calculate dx/dx for matrices")
+        # if len(self.value.shape) > 1:
+        #     raise Exception("Don't know how do calculate dx/dx for matrices")
+        n = self.value.shape[0]
         if self == variable:
-            return np.eye(self.value.shape[0])
+            return np.eye(n)
         else:
-            return np.zeros((self.value.shape, self.value.shape))
+            return np.zeros((n, n))
 
 
 class Zero(Variable):

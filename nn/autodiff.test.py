@@ -1,6 +1,6 @@
 import unittest as ut
 import numpy as np
-from autodiff import Add, Exp, InnerSum, PwProd, PwDiv, Variable, Sigmoid, Softmax
+from autodiff import Add, Exp, InnerSum, Mult, PwProd, PwDiv, Variable, Sigmoid, Softmax
 
 
 class AutodiffTests(ut.TestCase):
@@ -39,7 +39,7 @@ class AutodiffTests(ut.TestCase):
         """
         u = Variable(np.array([1, 2, 3]))
         dudu = u.diff(u)
-        self.assertClose(dudu, np.eye(3, 3))
+        self.assertClose(dudu, np.eye(3))
 
     def testSum(self):
         """
@@ -185,15 +185,15 @@ class AutodiffTests(ut.TestCase):
     def testMatrixVectorMult(self):
         v = Variable(np.array([1, 2]))
         M = Variable(np.array([[1, 2], [2, 1]]))
-        p = np.arrayVectorMult(M, v)
+        p = Mult(M, v)
         pVal = p.eval()
         pDifV = p.diff(v)
         pDifM = p.diff(M)
 
         pExpected = np.array([5, 4])
         self.assertClose(pVal, pExpected)
-        self.assertClose(pDifV, M.val)
-        self.assertClose(pDifM, v.val)
+        self.assertClose(pDifV, M.value)
+        self.assertClose(pDifM, v.value)
 
 
 
