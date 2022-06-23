@@ -58,7 +58,7 @@ class Add(Node):
         return self.n1.diff(var) + self.n2.diff(var)
 
 
-class Min(Node):
+class Minus(Node):
     def __init__(self, n1: Node, n2: Node):
         self.n1 = n1
         self.n2 = n2
@@ -121,6 +121,22 @@ class Exp(Node):
         nD = self.n.diff(var)
         eV = self.eval()
         return nD * eV
+
+
+class Ln(Node):
+    def __init__(self, u: Node):
+        self.u = u
+
+    def eval(self):
+        return np.log(self.u.eval())
+
+    def diff(self, var: Node):
+        u = self.u.eval()
+        uD = self.u.diff(var)
+        ddu_lnu = np.diag(1 / u)
+        return matMul(ddu_lnu, uD)
+
+
 
 
 class PwDiv(Node):
@@ -203,6 +219,45 @@ class InnerSum(Node):
         return np.sum(nodeDiff, 0)
 
 
+# def Pow(Node):
+#     def __init__(self, base: Node, pow: Node):
+#         self.base = base
+#         self.pow = pow
+
+#     def eval(self):
+#         return np.power(self.base.eval(), self.pow.eval())
+
+#     def diff(self, var: Node):
+#         """
+#             a = e^log(a)
+#             a^b = e^(log(a) * b)
+#             d a^b / dx = d/dx e^(log(a) * b)
+#                        = d/dx (log(a) * b) e^(log(a) * b)
+#                        = d/dx (log(a) * b) a^b
+#                        = (a'b/a + log(a)b') * a^b
+#         """
+
+
+class ScalarPower(Node):
+    def __init__(self, a: Node, s: float):
+        self.a = a
+        self.s = s
+
+    def eval(self):
+        av = self.a.eval()
+        return np.power(av, self.s)
+
+    def diff(self, x: Node):
+        """
+            d/dx a^s = s a^(s-1) da/dx
+
+        """
+        s = self.s
+        av = self.a.eval()
+        apowsm1 = av**(s-1)
+        da_dx = self.a.diff(x)
+        return s * np.diag(apowsm1) @ da_dx
+
 
 def Sigmoid(x: Node):
     num = One(1)
@@ -216,6 +271,13 @@ def Softmax(x: Node):
     den = InnerSum(Exp(x))
     return PwDiv(num, den)
 
+
+def SSE(y: Node, yObs: np.array):
+    yObsV = Variable(yObs)
+    eV = Minus(y, yObsV)
+    seV = ScalarPower(eV, 2)
+    sseV = InnerSum(seV)
+    return sseV
 
 
 # %%

@@ -1,6 +1,6 @@
 import unittest as ut
 import numpy as np
-from autodiff import Add, Exp, InnerSum, Mult, PwProd, PwDiv, Variable, Sigmoid, Softmax
+from autodiff import Add, Exp, InnerSum, Mult, PwProd, PwDiv, Variable, ScalarMult, Sigmoid, Softmax, SSE, ScalarPower
 
 
 class AutodiffTests(ut.TestCase):
@@ -187,6 +187,21 @@ class AutodiffTests(ut.TestCase):
             [0, 0, -3/(4**2)]
         ]))
 
+
+    def testScalarPow(self):
+        x = np.array([1, 2])
+        x2 = x**2
+
+        xV = Variable(x)
+        x2V = ScalarPower(xV, 2)
+
+        x2val = x2V.eval()
+        x2dx = x2V.diff(xV)
+
+        self.assertClose(x2val, x2)
+        self.assertClose(x2dx, np.diag(2*x))
+
+
     def testSigmoid(self):
         def sig(x):
             return 1 / (1 + np.exp(-x))
@@ -216,6 +231,35 @@ class AutodiffTests(ut.TestCase):
         sDif = s.diff(x)
         self.assertClose(np.sum(sVal), 1.0)
         self.assertClose(sVal, sm(data))
+
+    def testSSE(self):
+        def sse(ySim, yObs):
+            return np.sum((ySim - yObs)**2)
+
+        x = np.array([1, 2, 3])
+        ySim = 2 * x
+        yObs = x**2
+        sseObs = sse(ySim, yObs)
+
+        xV = Variable(x)
+        ySimV = ScalarMult(2, xV)
+        sseV = SSE(ySimV, yObs)
+
+        sseVal = sseV.eval()
+        sseDx = sseV.diff(xV)
+        sseDy = sseV.diff(ySimV)
+
+        self.assertClose(sseVal, sseObs)
+
+        betterYSimV = ScalarPower(xV, 2)
+        betterSseV = SSE(betterYSimV, yObs)
+        betterSseVal = betterSseV.eval()
+        betterSseDx = betterSseV.diff(xV)
+        betterSseDy = betterSseV.diff(ySimV)
+
+        self.assertClose(betterSseVal, 0)
+        self.assertClose(betterSseDx, np.array([0, 0, 0]))
+    
 
 
 
