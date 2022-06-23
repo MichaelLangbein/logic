@@ -6,7 +6,9 @@ import numpy as np
 #%%
 
 
-def matMul(m1: np.array, m2: np.array):
+def matMul(m1, m2):
+    if type(m1) == int or type(m2) == int:
+        return np.squeeze(m1 * m2)
     return np.squeeze(m1 @ m2)
 
 
@@ -26,23 +28,21 @@ class Variable(Node):
         return self.value
 
     def diff(self, variable: Node):
-        # if len(self.value.shape) > 1:
-        #     raise Exception("Don't know how do calculate dx/dx for matrices")
-        n = self.value.shape[0]
         if self == variable:
-            return np.eye(n)
+            return np.eye(self.value.shape[0])
         else:
-            return np.zeros((n, n))
+            return np.zeros(self.value.shape)
+
 
 
 class Zero(Variable):
-    def __init__(self, n: int, m = 1):
-        super().__init__(np.zeros((n, m)))
+    def __init__(self, shape):
+        super().__init__(np.zeros(shape))
 
 
 class One(Variable):
-    def __init__(self, n: int, m = 1):
-        super().__init__(np.ones((n, m)))
+    def __init__(self, shape):
+        super().__init__(np.ones(shape))
 
 
 
@@ -68,6 +68,7 @@ class Min(Node):
 
     def diff(self, var: Node):
         return self.n1.diff(var) - self.n2.diff(var)
+
 
 
 class Mult(Node):
@@ -118,8 +119,8 @@ class Exp(Node):
 
     def diff(self, var: Node):
         nD = self.n.diff(var)
-        nV = self.eval()
-        return matMul(nD, nV)
+        eV = self.eval()
+        return nD * eV
 
 
 class PwDiv(Node):
@@ -136,7 +137,7 @@ class PwDiv(Node):
     def diff(self, variable: Variable):
         [a, b] = [n.eval() for n in self.nodes]
         [da, db] = [n.diff(variable) for n in self.nodes]
-        return (matMul(da, b) - matMul(a, db)) / b**2
+        return (da * b - a * db) / b**2
 
 
         

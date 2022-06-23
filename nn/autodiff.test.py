@@ -11,11 +11,11 @@ class AutodiffTests(ut.TestCase):
     def setUp(self):
         return super().setUp()
 
-    def _arraysClose(self, arr1, arr2, threshold = 0.001):
+    def _arraysClose(self, arr1: np.array, arr2: np.array, threshold = 0.001):
         if arr1.shape != arr2.shape:
             print('Dimensions dont match', arr1.shape, arr2.shape)
             return False
-        diff = np.abs(np.sum(arr1 - arr2))
+        diff = np.max(np.abs(arr1 - arr2))
         if diff >= threshold:
             print("values unequal: ", arr1, arr2)
             return False
@@ -32,6 +32,16 @@ class AutodiffTests(ut.TestCase):
         if hasattr(v1, "__len__"):
             return self.assertTrue(self._arraysClose(v1, v2, threshold))
         return self.assertTrue(self._valuesClose(v1, v2, threshold))
+
+    
+    def testAssertClose(self):
+        return self.assertClose(np.array([
+            [1, 2],
+            [2, 1]
+        ]), np.array([
+            [1, 2],
+            [2, 1]
+        ]))
 
     def testDiffBySelf(self):
         """
@@ -54,8 +64,8 @@ class AutodiffTests(ut.TestCase):
         dSdu = s.diff(u)
         dSdv = s.diff(v)
         self.assertClose(sVal, np.array([3, 5, 7]))
-        self.assertClose(dSdu, np.eye(3, 3))
-        self.assertClose(dSdv, np.eye(3, 3))
+        self.assertClose(dSdu, np.eye(3))
+        self.assertClose(dSdv, np.eye(3))
 
     def testInnerSum(self):
         """
@@ -89,6 +99,19 @@ class AutodiffTests(ut.TestCase):
         si = InnerSum(sv)
         dsidu = si.diff(u)
         self.assertClose(dsidu, np.array([1, 1, 1]))
+    
+    def testMatrixVectorMult(self):
+        v = Variable(np.array([1., 2.]))
+        M = Variable(np.array([[1., 2.], [2., 1.]]))
+        p = Mult(M, v)
+        pVal = p.eval()
+        pDifV = p.diff(v)
+        pDifM = p.diff(M)
+
+        pExpected = np.array([5, 4])
+        self.assertClose(pVal, pExpected)
+        self.assertClose(pDifV, M.value)
+        self.assertClose(pDifM, v.value)
 
     def testExp(self):
         """
@@ -147,7 +170,7 @@ class AutodiffTests(ut.TestCase):
             [0, 0, 4]
         ]))
 
-    def testDiv(self):
+    def testPwDiv(self):
         u = Variable(np.array([1, 2, 3]))
         v = Variable(np.array([2, 3, 4]))
         d = PwDiv(u, v)
@@ -165,35 +188,35 @@ class AutodiffTests(ut.TestCase):
         ]))
 
     def testSigmoid(self):
-        x = Variable(np.array([0, 1000]))
+        def sig(x):
+            return 1 / (1 + np.exp(-x))
+        
+        def dsig(x):
+            return np.diag(sig(x) * (1 - sig(x)))
+
+        data = np.array([0, 1000])
+
+        x = Variable(data)
         s = Sigmoid(x)
         sVal = s.eval()
         sDif = s.diff(x)
-        self.assertClose(sVal, np.array([0.5, 1.0]))
-        self.assertClose(sDif, np.array([
-            [0.25, 0],
-            [0, 0]
-        ]))
+
+        self.assertClose(sVal, sig(data))
+        self.assertClose(sDif, dsig(data))
 
     def testSoftmax(self):
-        x = Variable(np.array([0.6, 1.0]))
+        def sm(x):
+            return np.exp(x) / np.sum(np.exp(x))
+
+        data = np.array([0.6, 1.0])
+
+        x = Variable(data)
         s = Softmax(x)
         sVal = s.eval()
         sDif = s.diff(x)
         self.assertClose(np.sum(sVal), 1.0)
+        self.assertClose(sVal, sm(data))
 
-    def testMatrixVectorMult(self):
-        v = Variable(np.array([1, 2]))
-        M = Variable(np.array([[1, 2], [2, 1]]))
-        p = Mult(M, v)
-        pVal = p.eval()
-        pDifV = p.diff(v)
-        pDifM = p.diff(M)
-
-        pExpected = np.array([5, 4])
-        self.assertClose(pVal, pExpected)
-        self.assertClose(pDifV, M.value)
-        self.assertClose(pDifM, v.value)
 
 
 
