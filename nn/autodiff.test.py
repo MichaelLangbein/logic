@@ -13,7 +13,7 @@ class AutodiffTests(ut.TestCase):
 
     def _arraysClose(self, arr1: np.array, arr2: np.array, threshold = 0.001):
         if arr1.shape != arr2.shape:
-            print('Dimensions dont match', arr1.shape, arr2.shape)
+            print("Dimensions don't match", arr1.shape, arr2.shape)
             return False
         diff = np.max(np.abs(arr1 - arr2))
         if diff >= threshold:
