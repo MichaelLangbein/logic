@@ -94,8 +94,12 @@ def updateDomain(var, vars, facs):
     return var
 
 
+bestRating = 0
+@memoize
 def solve(vars, facs, rating = 1):
     if all(vars, lambda var: var.decided()):
+        if rating > bestRating:
+            bestRating = rating
         yield (rating, vars)
 
     else:
@@ -108,12 +112,17 @@ def solve(vars, facs, rating = 1):
                 newVars = [*otherVars, varDecided]
                 # print(f"Trying {newVars} ...")
 
-                # Step 2: evaluate set. If inconsistent, stop here
+                # Step 2: evaluate set.
                 subRating = 1
                 for fac in facs:
                     if fac.applicable(newVars):
                         subRating *= fac.apply(newVars)
+                # If inconsistent, stop here.
                 if subRating == 0:
+                    continue
+                # If another combination was already better
+                # than anything we can get from here, stop too.
+                if bestRating > rating * subRating:
                     continue
 
                 # Step 3: adjust domains of other variables through lookahead
