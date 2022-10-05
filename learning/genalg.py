@@ -6,13 +6,13 @@ from learning.analysis import findRules, evaluateQuality
 Wiki-data is a huge knowledge base.
 The objective here is to learn rules from that kb to be used in an inference engine.
 
-How does one find rules frome a knowledge base?
+How does one find rules from a knowledge base?
 Well, I often move from link to link through wikipedia. 
 Sometimes i find topic x on a site that seems to be related to topic y from a completely other site.
-Our geneseed could be a list of random walks through wikimedias links.
+Our gene-seed could be a list of random walks through wikimedia's links.
 We could try to recombine some points in these walks.
 
-This at first sight seems less deep than just evolving ideas themself. 
+This at first sight seems less deep than just evolving ideas themselves. 
 But is it really? Think of it this way:
 Wikidata is our knowledge base. 
 One part of creativity is finding rules based on facts, (thats handled with random forrest, better than genalg),

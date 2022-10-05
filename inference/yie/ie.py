@@ -170,7 +170,7 @@ class InferenceEngine:
         """
             The first conjunct creates a stream of tDicts.
             Every subsequent conjunct filters that stream.
-            Cancels early when the sream has become empty.
+            Cancels early when the stream has become empty.
         """
         for tDict in self.eval(*firstArg):
             if len(restArgs) == 0:

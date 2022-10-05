@@ -79,13 +79,9 @@ class Fac:
 
 def orderVars(vars, facs):
     # return most constrained var first
-    def sortFunc(var):
-        if var.decided():
-            return 999999
-        else:
-            return len(var.range)
-    vars.sort(key = sortFunc)
-    return vars
+    undecided = [var for var in vars if not var.decided()]
+    undecided.sort(key = lambda var: len(var.range))
+    return undecided
 
 
 def orderVals(var, vars, facs):
@@ -100,36 +96,38 @@ def updateDomain(var, vars, facs):
 
 def solve(vars, facs, rating = 1):
     if all(vars, lambda var: var.decided()):
-        return (rating, vars)
+        yield (rating, vars)
 
-    for var in orderVars(vars, facs):
-        for val in orderVals(var, vars, facs):
+    else:
+        for var in orderVars(vars, facs):
+            for val in orderVals(var, vars, facs):
 
-            # Step 1: new variable set with decided value
-            varDecided = var.decide(val)
-            otherVars = allExcept(vars, var)
-            newVars = [*otherVars, varDecided]
-            print(f"Trying {newVars} ...")
+                # Step 1: new variable set with decided value
+                varDecided = var.decide(val)
+                otherVars = allExcept(vars, var)
+                newVars = [*otherVars, varDecided]
+                # print(f"Trying {newVars} ...")
 
-            # Step 2: evaluate set. If inconsistent, stop here
-            subRating = 1
-            for fac in facs:
-                if fac.applicable(newVars):
-                    subRating *= fac.apply(newVars)
-            if subRating == 0:
-                continue
+                # Step 2: evaluate set. If inconsistent, stop here
+                subRating = 1
+                for fac in facs:
+                    if fac.applicable(newVars):
+                        subRating *= fac.apply(newVars)
+                if subRating == 0:
+                    continue
 
-            # Step 3: adjust domains of other variables through lookahead
-            # This step is optional because if we don't do it, inconsistent values
-            # will be filtered out in the next recursion ...
-            # ... but here we have a chance to do something smart
-            # that removes multiple values at once.
-            updatedVars = [
-                updateDomain(var, newVars, facs)
-                for var in newVars
-            ]
+                # Step 3: adjust domains of other variables through lookahead
+                # This step is optional because if we don't do it, inconsistent values
+                # will be filtered out in the next recursion ...
+                # ... but here we have a chance to do something smart
+                # that removes multiple values at once.
+                updatedVars = [
+                    updateDomain(var, newVars, facs)
+                    for var in newVars
+                ]
 
-            return solve(updatedVars, facs, rating * subRating)
+                for result in solve(updatedVars, facs, rating * subRating):
+                    yield result
 
 
 
@@ -164,8 +162,8 @@ ta = Var('TA', colors)
 vars = [wa, nt, sa, qu, nw, vc, ta]
 facs = [wa_nt, wa_sa, nt_sa, nt_qu, sa_qu, qu_nw, sa_nw, sa_vc, nw_vc]
 
-result = solve(vars, facs)
-print(result)
+for i, result in enumerate(solve(vars, facs)):
+    print(i, result)
 
 
 # %%
