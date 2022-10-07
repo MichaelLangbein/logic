@@ -1,4 +1,5 @@
 #%% Getting some example data
+from email import feedparser
 import yfinance as y
 
 apple = y.Ticker('AAPL')
@@ -33,4 +34,50 @@ fh = ForecastingHorizon(
     is_relative=False
 )
 prediction = forecaster.predict_interval(fh=fh)
-# %%
+
+
+#%%
+gamma = 0.9
+fee = 2.45  # price for buying stock;
+s0 = -fee
+S = [-3*fee, -2*fee, -1*fee, 0*fee, 1*fee, 2*fee, 3*fee, 'sold']
+
+def reward(sNext, s, a):
+    if a == 'sell':
+        return sNext - s0
+    else:
+        return 0
+
+def prob(sNext, s, a):
+    pass
+
+def endState(s):
+    return s == 'sold'
+
+def value(policy, s):
+    if endState(s):
+        return 0
+    a = policy[s]
+    v = 0
+    for sNext in S:
+        vNow = reward(sNext, s, a)
+        vFut = gamma * value(policy, sNext)
+        v += prob(sNext, s, a) * (vNow + vFut)
+    return v
+
+
+policies = [
+    ['sell'],
+    ['keep', 'sell'],
+    ['keep', 'keep', 'sell'],
+    ['keep', 'keep', 'keep', 'sell']
+]
+
+vMax = 0
+for policy in policies:
+    v = value(policy, s0)
+    if v > vMax:
+        vMax = v
+        pOpt = policy
+print(pOpt)
+    
