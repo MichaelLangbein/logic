@@ -1,5 +1,4 @@
 #%% Getting some example data
-from email import feedparser
 import yfinance as y
 
 apple = y.Ticker('AAPL')
