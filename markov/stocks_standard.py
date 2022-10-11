@@ -65,20 +65,7 @@ def cacheKeyFunction(policy, state, action):
 
 gamma = 0.9
 
-cache = {}
-def memo(qVal):
-    def cachedQVal(policy, state, action):
-        key = cacheKeyFunction(policy, state, action)
-        if key in cache:
-            r = qVal(policy, state, action)
-            print(f"cache: {r} vs {cache[key]}")
-            return cache[key]
-        r = qVal(policy, state, action)
-        cache[key] = r
-        return r
-    return cachedQVal
 
-@memo
 def cachedValue(policy, state, action):
     """ expected utility of state given action and policy """
     v = 0
