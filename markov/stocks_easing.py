@@ -1,55 +1,101 @@
 
 gamma = 0.95
-S = [
-    '1/low', '1/mid', '1/high',
-    '2/low', '2/mid', '2/high',
-    '3/low', '3/mid', '3/high',
-    '4/low', '4/mid', '4/high',
-    '5/low', '5/mid', '5/high',
-    '6/low', '6/mid', '6/high',
-    '7/low', '7/mid', '7/high',
-    '8/low', '8/mid', '8/high',
-    '9/low', '9/mid', '9/high',
-    '10/low', '10/mid', '10/high',
-    'sold'
-]
-A = ['buy', 'sell', 'keep']
 
-def isEndState(s):
+S = [  # time / stock price / my debt
+    '1/low/none', '1/mid/none', '1/high/none',
+    '2/low/none', '2/mid/none', '2/high/none',
+    '3/low/none', '3/mid/none', '3/high/none',
+    '4/low/none', '4/mid/none', '4/high/none',
+    '5/low/none', '5/mid/none', '5/high/none',
+    '6/low/none', '6/mid/none', '6/high/none',
+    '7/low/none', '7/mid/none', '7/high/none',
+
+    '2/low/low', '2/mid/low', '2/high/low',
+    '3/low/low', '3/mid/low', '3/high/low',
+    '4/low/low', '4/mid/low', '4/high/low',
+    '5/low/low', '5/mid/low', '5/high/low',
+    '6/low/low', '6/mid/low', '6/high/low',
+    '7/low/low', '7/mid/low', '7/high/low',
+    '8/low/low', '8/mid/low', '8/high/low',
+    '9/low/low', '9/mid/low', '9/high/low',
+
+    '2/low/mid', '2/mid/mid', '2/high/mid',
+    '3/low/mid', '3/mid/mid', '3/high/mid',
+    '4/low/mid', '4/mid/mid', '4/high/mid',
+    '5/low/mid', '5/mid/mid', '5/high/mid',
+    '6/low/mid', '6/mid/mid', '6/high/mid',
+    '7/low/mid', '7/mid/mid', '7/high/mid',
+    '8/low/mid', '8/mid/mid', '8/high/mid',
+    '9/low/mid', '9/mid/mid', '9/high/mid',
+
+    '2/low/high', '2/mid/high', '2/high/high',
+    '3/low/high', '3/mid/high', '3/high/high',
+    '4/low/high', '4/mid/high', '4/high/high',
+    '5/low/high', '5/mid/high', '5/high/high',
+    '6/low/high', '6/mid/high', '6/high/high',
+    '7/low/high', '7/mid/high', '7/high/high',
+    '8/low/high', '8/mid/high', '8/high/high',
+    '9/low/high', '9/mid/high', '9/high/high',
+
+    '2/low/sold', '2/mid/sold', '2/high/sold',
+    '3/low/sold', '3/mid/sold', '3/high/sold',
+    '4/low/sold', '4/mid/sold', '4/high/sold',
+    '5/low/sold', '5/mid/sold', '5/high/sold',
+    '6/low/sold', '6/mid/sold', '6/high/sold',
+    '7/low/sold', '7/mid/sold', '7/high/sold',
+    '8/low/sold', '8/mid/sold', '8/high/sold',
+    '9/low/sold', '9/mid/sold', '9/high/sold',
+]
+
+
+def possibleActions(state):
+    t, v, s = state.split('/')
+    if s == 'none':
+        return ['keep', 'buy']
+    if s in ['low', 'mid', 'high']:
+        return ['keep', 'sell']
+    if s == 'sold':
+        return ['keep']
+
+
+def isEndState(state):
+    t, v, s = state.split('/')
     return s == 'sold'
 
-def reward(sNext, s, a):
-    ts, vs = s.split('/')
+
+def reward(sNext, state, a):
+    t, v, s = state.split('/')
     if a == 'sell':
-        if vs == 'high':
+        if v == 'high':
             return 10
-        if vs == 'mid':
+        if v == 'mid':
             return 5
-        if vs == 'low':
+        if v == 'low':
             return 1
     if a == 'buy':
-        if vs == 'high':
+        if v == 'high':
             return -10
-        if vs == 'mid':
+        if v == 'mid':
             return -5
-        if vs == 'low':
+        if v == 'low':
             return -1
     return 0
 
 
-def prob(sNext, s, a):
-    if s == 'sold':
-        if sNext == 'sold':
-            return 1
-        return 0
-    if sNext == 'sold':
-        if a == 'sell':
-            return 1
-        return 0
-    
-    ts, vs = s.split('/')
-    tn, vn = sNext.split('/')
+def prob(sNext, state, a):
+    ts, vs, ss = state.split('/')
+    tn, vn, sn = sNext.split('/')
 
+    # excluding impossible combinations
+    if ss == 'sold' and sn != 'sold':
+        return 0
+    if ss in ['low', 'mid', 'high'] and sn == 'none':
+        return 0
+    if a == 'buy':
+        if sn != vs:
+            return 0
+    if a == 'sell' and sn != 'sold':
+        return 0
     if int(ts) + 1 != int(tn):
         return 0
 
@@ -108,32 +154,23 @@ def evalStrategy(strategy):
     return Vnew
 
 
+def optimalStrategy():
+    strategy = {}
+    Vnew = {s: 0 for s in S}
+    error = 99999
+    while error > 0.05:
+        Vold = Vnew
+        Vnew = {}
+        for s in S:
+            maxQs = -99999
+            for a in possibleActions(s):
+                qs = qValue(s, a, Vold)
+                if qs > maxQs:
+                    maxQs = qs
+                    strategy[s] = a
+            Vnew[s] = maxQs
+        error = errorFunc(Vnew, Vold)
+    return strategy
 
-s0 = S[2]
-vOpt = -99999
-for tBuy in range(1, 9):
-    for tSell in range(tBuy + 1, 10):
-        def action(state):
-            if state == 'sold':
-                return 'keep'
-            ts, vs = state.split('/')
-            if int(ts) == tBuy:
-                return 'buy'
-            if int(ts) == tSell:
-                return 'sell'
-            return 'keep'
-        strat = {
-            state: action(state) for state in S
-        }
-        v = evalStrategy(strat)
-        print(f"evaluated {tBuy}/{tSell} => {v[s0]}")
-        if v[s0] > vOpt:
-            vOpt = v[s0]
-            stratOpt = strat
-            print(f"opt: {tBuy}/{tSell} => {v[s0]}")
-print(stratOpt)
-
-"""
-    When stocks are initially high (`s0 = S[2]`), 
-    MDP suggests that we buy late.
-"""
+sOpt = optimalStrategy()
+print(sOpt)
