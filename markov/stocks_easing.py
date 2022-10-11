@@ -7,6 +7,10 @@ S = [
     '4/low', '4/mid', '4/high',
     '5/low', '5/mid', '5/high',
     '6/low', '6/mid', '6/high',
+    '7/low', '7/mid', '7/high',
+    '8/low', '8/mid', '8/high',
+    '9/low', '9/mid', '9/high',
+    '10/low', '10/mid', '10/high',
     'sold'
 ]
 A = ['buy', 'sell', 'keep']
@@ -94,7 +98,7 @@ def qValue(state, action, Vold):
 def evalStrategy(strategy):
     Vnew = {s: 0 for s in S}
     error = 99999
-    while error > 0.05:
+    while error > 0.001:
         Vold = Vnew
         Vnew = {}
         for s in S:
@@ -105,10 +109,10 @@ def evalStrategy(strategy):
 
 
 
-s0 = S[0]
+s0 = S[2]
 vOpt = -99999
-for tBuy in range(1, 4):
-    for tSell in range(tBuy + 1, 6):
+for tBuy in range(1, 9):
+    for tSell in range(tBuy + 1, 10):
         def action(state):
             if state == 'sold':
                 return 'keep'
@@ -122,7 +126,14 @@ for tBuy in range(1, 4):
             state: action(state) for state in S
         }
         v = evalStrategy(strat)
+        print(f"evaluated {tBuy}/{tSell} => {v[s0]}")
         if v[s0] > vOpt:
             vOpt = v[s0]
             stratOpt = strat
+            print(f"opt: {tBuy}/{tSell} => {v[s0]}")
 print(stratOpt)
+
+"""
+    When stocks are initially high (`s0 = S[2]`), 
+    MDP suggests that we buy late.
+"""
