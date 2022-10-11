@@ -7,7 +7,7 @@ import numpy.random as nr
 
 
 fee = 1.2
-possibleValues = [i * fee for i in range(10)]
+possibleValues = [i * fee for i in range(3)]
 
 def last(l, n=1):
     if n == 1:
@@ -32,10 +32,10 @@ def prob(nextState, state, action):
             return 1.0
         else:
             return 0.0
-    mu = last(state) / fee
+    mu = max(last(state) / fee, 1)
     x = last(nextState) / fee
     distr = ss.binom(len(possibleValues), mu/len(possibleValues))
-    p = distr.cdf(x + 1) - distr.cdf(x)
+    p = distr.pmf(x)
     return p
 
 # def prob(nextState, state, action):
@@ -70,6 +70,8 @@ def memo(qVal):
     def cachedQVal(policy, state, action):
         key = cacheKeyFunction(policy, state, action)
         if key in cache:
+            r = qVal(policy, state, action)
+            print(f"cache: {r} vs {cache[key]}")
             return cache[key]
         r = qVal(policy, state, action)
         cache[key] = r
@@ -109,7 +111,7 @@ def createPolicy(tBuy, tSell):
     return policy
 
 T = 30
-state0 = [possibleValues[3]]
+state0 = [possibleValues[1]]
 vPolMax = -99999999
 
 for tBuy in range(0, T-1):
@@ -122,5 +124,12 @@ for tBuy in range(0, T-1):
             polOpt = (tBuy, tSell, vPolMax)
 
 print(polOpt)
+
+
+# tBuy = 2
+# tSell = 4
+# policy = createPolicy(tBuy, tSell)
+# vPol = value(policy, state0)
+
 
 # %%
