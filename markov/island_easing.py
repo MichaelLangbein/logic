@@ -1,3 +1,4 @@
+#%%
 
 gamma = 0.95
 S = [
@@ -5,7 +6,19 @@ S = [
     '2/1', '2/2', '2/3', '2/4',
     '3/1', '3/2', '3/3', '3/4',
 ]
-A = ['up', 'right', 'down', 'left']
+
+def possibleActions(state):
+    A = ['up', 'right', 'down', 'left']
+    r, c = [int(v) for v in state.split('/')]
+    if r == 1:
+        A.remove('up')
+    if c == 1:
+        A.remove('left')
+    if r == 3:
+        A.remove('down')
+    if c == 4:
+        A.remove('right')
+    return A
 
 def isEndState(s):
     return s == '1/3' or s == '2/3' or s == '1/4' or s == '3/1'
@@ -27,7 +40,7 @@ def neighbor(pa, pb):
     return False
 
 def prob(sNext, s, a):
-    pSlip = 0.4
+    pSlip = 0.1
     r, c = [int(v) for v in s.split('/')]
     rN, cN = [int(v) for v in sNext.split('/')]
     if a == 'up' and rN == r-1 and c == cN:
@@ -85,7 +98,7 @@ def optimalStrategy():
         Vnew = {}
         for s in S:
             maxQs = -99999
-            for a in A:
+            for a in possibleActions(s):
                 qs = qValue(s, a, Vold)
                 if qs > maxQs:
                     maxQs = qs
@@ -94,6 +107,11 @@ def optimalStrategy():
         error = errorFunc(Vnew, Vold)
     return strategy
 
-
+#%%
 strat = optimalStrategy()
-print(strat)
+vStrat = evalStrategy(strat)
+for s in strat:
+    r, c = s.split('/')
+    print(f"{s} -- {strat[s]} -- {vStrat[s]}")
+
+# %%

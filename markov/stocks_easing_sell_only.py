@@ -1,42 +1,17 @@
 #%% 
 gamma = 0.95
 
-S = [  # time / stock price / my debt
-    '1/low/none', '1/mid/none', '1/high/none',
-    '2/low/none', '2/mid/none', '2/high/none',
-    '3/low/none', '3/mid/none', '3/high/none',
-    '4/low/none', '4/mid/none', '4/high/none',
-    '5/low/none', '5/mid/none', '5/high/none',
-    '6/low/none', '6/mid/none', '6/high/none',
-    '7/low/none', '7/mid/none', '7/high/none',
-
-    '2/low/low', '2/mid/low', '2/high/low',
-    '3/low/low', '3/mid/low', '3/high/low',
-    '4/low/low', '4/mid/low', '4/high/low',
-    '5/low/low', '5/mid/low', '5/high/low',
-    '6/low/low', '6/mid/low', '6/high/low',
-    '7/low/low', '7/mid/low', '7/high/low',
-    '8/low/low', '8/mid/low', '8/high/low',
-    '9/low/low', '9/mid/low', '9/high/low',
-
-    '2/low/mid', '2/mid/mid', '2/high/mid',
-    '3/low/mid', '3/mid/mid', '3/high/mid',
-    '4/low/mid', '4/mid/mid', '4/high/mid',
-    '5/low/mid', '5/mid/mid', '5/high/mid',
-    '6/low/mid', '6/mid/mid', '6/high/mid',
-    '7/low/mid', '7/mid/mid', '7/high/mid',
-    '8/low/mid', '8/mid/mid', '8/high/mid',
-    '9/low/mid', '9/mid/mid', '9/high/mid',
-
-    '2/low/high', '2/mid/high', '2/high/high',
-    '3/low/high', '3/mid/high', '3/high/high',
-    '4/low/high', '4/mid/high', '4/high/high',
-    '5/low/high', '5/mid/high', '5/high/high',
-    '6/low/high', '6/mid/high', '6/high/high',
-    '7/low/high', '7/mid/high', '7/high/high',
-    '8/low/high', '8/mid/high', '8/high/high',
-    '9/low/high', '9/mid/high', '9/high/high',
-
+S = [  # time / stock price / ownership
+    '1/low/holding', '1/mid/holding', '1/high/holding',
+    '2/low/holding', '2/mid/holding', '2/high/holding',
+    '3/low/holding', '3/mid/holding', '3/high/holding',
+    '4/low/holding', '4/mid/holding', '4/high/holding',
+    '5/low/holding', '5/mid/holding', '5/high/holding',
+    '6/low/holding', '6/mid/holding', '6/high/holding',
+    '7/low/holding', '7/mid/holding', '7/high/holding',
+    '8/low/holding', '8/mid/holding', '8/high/holding',
+    '9/low/holding', '9/mid/holding', '9/high/holding',
+    '1/low/sold', '1/mid/sold', '1/high/sold',
     '2/low/sold', '2/mid/sold', '2/high/sold',
     '3/low/sold', '3/mid/sold', '3/high/sold',
     '4/low/sold', '4/mid/sold', '4/high/sold',
@@ -50,12 +25,10 @@ S = [  # time / stock price / my debt
 
 def possibleActions(state):
     t, v, s = state.split('/')
-    if s == 'none':
-        return ['keep', 'buy']
-    if s in ['low', 'mid', 'high']:
+    if s == 'holding':
         return ['keep', 'sell']
     if s == 'sold':
-        return ['keep']
+        return ['-']
 
 
 def isEndState(state):
@@ -64,21 +37,16 @@ def isEndState(state):
 
 
 def reward(sNext, state, a):
+    buyingPrice = 5
+    fee = 1
     t, v, s = state.split('/')
     if a == 'sell':
         if v == 'high':
-            return 10
+            return 10 - buyingPrice - fee
         if v == 'mid':
-            return 5
+            return 5 - buyingPrice - fee
         if v == 'low':
-            return 1
-    if a == 'buy':
-        if v == 'high':
-            return -10
-        if v == 'mid':
-            return -5
-        if v == 'low':
-            return -1
+            return 1 - buyingPrice - fee
     return 0
 
 
@@ -89,11 +57,6 @@ def prob(sNext, state, a):
     # excluding impossible combinations
     if ss == 'sold' and sn != 'sold':
         return 0
-    if ss in ['low', 'mid', 'high'] and sn == 'none':
-        return 0
-    if a == 'buy':
-        if sn != vs:
-            return 0
     if a == 'sell' and sn != 'sold':
         return 0
     if int(ts) + 1 != int(tn):
