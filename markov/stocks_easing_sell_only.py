@@ -33,7 +33,7 @@ def possibleActions(state):
 
 def isEndState(state):
     t, v, s = state.split('/')
-    return s == 'sold'
+    return s == 'sold' or int(t) >= 9
 
 
 def reward(sNext, state, a):
