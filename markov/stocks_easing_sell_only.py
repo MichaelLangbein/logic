@@ -37,16 +37,14 @@ def isEndState(state):
 
 
 def reward(sNext, state, a):
-    buyingPrice = 5
-    fee = 1
     t, v, s = state.split('/')
     if a == 'sell':
         if v == 'high':
-            return 10 - buyingPrice - fee
+            return 10
         if v == 'mid':
-            return 5 - buyingPrice - fee
+            return 5
         if v == 'low':
-            return 1 - buyingPrice - fee
+            return 1
     return 0
 
 
@@ -62,28 +60,78 @@ def prob(sNext, state, a):
     if int(ts) + 1 != int(tn):
         return 0
 
+    # # strictly declining market. 
+    # # MDP will suggest always selling
+    # if vs == 'low':
+    #     if vn == 'low':
+    #         return 1
+    #     if vn == 'mid':
+    #         return 0
+    #     if vn == 'high':
+    #         return 0
+    # if vs == 'mid':
+    #     if vn == 'low':
+    #         return 1
+    #     if vn == 'mid':
+    #         return 0
+    #     if vn == 'high':
+    #         return 0
+    # if vs == 'high':
+    #     if vn == 'low':
+    #         return 0
+    #     if vn == 'mid':
+    #         return 1
+    #     if vn == 'high':
+    #         return 0
+
+    # strictly increasing market.
+    # MDP will suggest selling only when high    
     if vs == 'low':
         if vn == 'low':
-            return 0.4
+            return 0
         if vn == 'mid':
-            return 0.4
+            return 1
         if vn == 'high':
-            return 0.2
+            return 0
     if vs == 'mid':
         if vn == 'low':
-            return 0.3
+            return 0
         if vn == 'mid':
-            return 0.4
+            return 0
         if vn == 'high':
-            return 0.3
+            return 1
     if vs == 'high':
         if vn == 'low':
-            return 0.2
+            return 0
         if vn == 'mid':
-            return 0.4
+            return 0
         if vn == 'high':
-            return 0.4
+            return 1
+    
+    # pretty random market.
+    # if vs == 'low':
+    #     if vn == 'low':
+    #         return 0.4
+    #     if vn == 'mid':
+    #         return 0.4
+    #     if vn == 'high':
+    #         return 0.2
+    # if vs == 'mid':
+    #     if vn == 'low':
+    #         return 0.3
+    #     if vn == 'mid':
+    #         return 0.4
+    #     if vn == 'high':
+    #         return 0.3
+    # if vs == 'high':
+    #     if vn == 'low':
+    #         return 0.2
+    #     if vn == 'mid':
+    #         return 0.4
+    #     if vn == 'high':
+    #         return 0.4
                     
+    
 
 def errorFunc(v1, v2):
     e = 0
