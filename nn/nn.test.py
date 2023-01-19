@@ -2,18 +2,9 @@ import unittest as ut
 import numpy as np
 from autodiff import SSE, Mult, Sigmoid, Variable
 
-from nn import FullyConnectedLayer, NN
+from nn import FullyConnectedLayer, NN, training, validation
 
 
-
-
-def simpleOutputFunc(input):
-    return input[0,:] + input[1,:] * input[2,:] / 3
-
-def createRandomData(nrSamples, nrI=3, outputFunc=simpleOutputFunc):
-    inputs = np.random.random((nrI, nrSamples))
-    outputs = outputFunc(inputs)
-    return inputs, outputs
 
 
 
@@ -83,53 +74,39 @@ class NNTests(ut.TestCase):
         net = NN(layers)
         
         nrSamples = 100
-        batchSize = 5
-        nrEpochs = 5
-        inputs = np.random.random((1, nrSamples))
-        outputs = inputs * 0.3
+        nrValidation = 10
+        inputsTraining = np.random.random((1, nrSamples))
+        outputsTraining = inputsTraining * 0.3
+        inputsValidation = np.random.random((1, nrValidation))
+        outputsValidation = inputsValidation * 0.3
+
+        sseInitial = validation(net, inputsValidation, outputsValidation)
+        training(net, inputsTraining, outputsTraining, 5, 5)
+        sseFinal = validation(net, inputsValidation, outputsValidation)
         
-        for e in range(nrEpochs):
-            for b in range(int(nrSamples/batchSize)):
-                batchIn = []
-                batchOut = []
-                for i in range(batchSize):
-                    n = b * batchSize + i
-                    batchIn.append(inputs[:, n])
-                    batchOut.append(outputs[:, n])
-                net.backwardBatch(batchIn, batchOut)
+        self.assertLess(sseFinal, sseInitial)
 
 
-    def dontrun_testSimpleNet(self):
+    def testSimpleNet(self):
+
+        def createRandomData(nrSamples, nrI=3):
+            inputs = np.random.random((nrI, nrSamples))
+            outputs = np.array([inputs[0,:] + inputs[1,:] * inputs[2,:] / 3])
+            return inputs, outputs
+
         layers = [FullyConnectedLayer(3, 3), FullyConnectedLayer(3, 2), FullyConnectedLayer(2, 1)]
         net = NN(layers)
 
         nrSamples = 100
         nrSplVal = 5
-        batchSize = 5
         inputs, outputs = createRandomData(nrSamples)
         inputsVal, outputsVal = createRandomData(nrSplVal)
 
-        batchInputs = []
-        batchTrueVals = []
-        for e in range(3):
-            for n in range(nrSamples):
-                if n > 0 and n % batchSize == 0:
-                    net.backwardBatch(batchInputs, batchTrueVals)
-                    batchInputs = []
-                    batchTrueVals = []
-                else:
-                    batchInputs.append(inputs[:, n])
-                    batchTrueVals.append(outputs[n])
-
-
-        e = 0
-        for i in range(nrSplVal):
-            oSim = net.run(inputsVal[:, i])
-            oVal = outputsVal[i]
-            e += (oSim - oVal)**2
-
-        print(e)
-        self.assertTrue(e < 5.0)
+        sseInitial = validation(net, inputsVal, outputsVal)
+        training(net, inputs, outputs, 5, 5)
+        sseFinal = validation(net, inputsVal, outputsVal)
+        
+        self.assertLess(sseFinal, sseInitial)
 
     
 

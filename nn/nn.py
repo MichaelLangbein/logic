@@ -51,7 +51,7 @@ class FullyConnectedLayer(Layer):
                 dxl/dWl = yl-1
         delta Wl = - alpha dE/dWl
         """
-        dx_dW = self.i.value
+        dx_dW = self.i.eval()
         self.W.value -= 0.01 * dE_dx * dx_dW
 
 
@@ -83,13 +83,13 @@ class NN:
             previousLayer = self.layers[l - 1]
             layer.setI(previousLayer.y())
 
-    def run(self, data: np.array):
+    def run(self, data: np.ndarray):
         inputV = Variable(data)
         self.layer0.setI(inputV)
         out = self.layerL.y().eval()
         return out
 
-    def backward(self, input: np.array, trueVal: np.array):
+    def backward(self, input: np.ndarray, trueVal: np.ndarray):
         self.layer0.setI(Variable(input))
         E = SSE(self.layerL.y(), trueVal)
 
@@ -107,7 +107,7 @@ class NN:
 
             layer.updateParas(dE_dx_l)
 
-    def backwardBatch(self, inputs: list[np.array], trueVals: list[np.array]):
+    def backwardBatch(self, inputs: list[np.ndarray], trueVals: list[np.ndarray]):
         summed_dE_dx_l = [0.0 for i in range(len(self.layers))]
         batchSize = len(inputs)
         
@@ -132,7 +132,41 @@ class NN:
 
                 summed_dE_dx_l[l] += dE_dx_l
         
-        for l in range(self.L):
+        for l in range(len(self.layers)):
             dE_dx_l = summed_dE_dx_l[l] / batchSize
             self.layers[l].updateParas(dE_dx_l)
 
+
+
+def training(net, inputs: np.ndarray, outputs: np.ndarray, nrEpochs, batchSize):
+    (inputDim, nrSamples) = inputs.shape
+    (outputDim, nso) = outputs.shape
+    if nrSamples != nso:
+        raise Exception(f"Input and output have different sizes: {nrSamples} vs. {nso}")
+
+    for e in range(nrEpochs):
+        for b in range(int(nrSamples/batchSize)):
+            batchIn = []
+            batchOut = []
+            for i in range(batchSize):
+                n = b * batchSize + i
+                batchIn.append(inputs[:, n])
+                batchOut.append(outputs[:, n])
+            net.backwardBatch(batchIn, batchOut)
+
+
+def validation(net, inputs: np.ndarray, outputs: np.ndarray):
+    (inputDim, nrSamples) = inputs.shape
+    (outputDim, nso) = outputs.shape
+    if nrSamples != nso:
+        raise Exception(f"Input and output have different sizes: {nrSamples} vs. {nso}")
+
+    sse = 0.0
+    for n in range(nrSamples):
+        input = inputs[:, n]
+        output = outputs[:, n]
+        prediction = net.run(input)
+        se = (output - prediction) * (output - prediction)
+        sse += se
+    
+    return sse
