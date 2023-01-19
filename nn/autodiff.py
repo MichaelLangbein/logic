@@ -1,6 +1,12 @@
 #%%
 import numpy as np
 
+"""
+# TODOs
+ - the test `if var == self` can probably be moved into Node
+ - the function `id()` can probably be moved into Node (but requires some introspection)
+"""
+
 #%%
 
 
@@ -23,8 +29,12 @@ class Node:
     def diff(self, node) -> np.array:
         raise Exception('Diff not implemented')
 
-    def id(self) -> str:
-        raise Exception('Id not implemented')
+    # def id(self) -> str:
+    #     className = self.__class__.__name__
+    #     attributeNames = inspect.getargspec(Super.__init__)
+    #     args = [self.__getattribute__(name) for name in attributeNames]
+    #     argsString = [arg.id() for arg in args].join(", ")
+    #     return f"{className}(${argsString})"
 
     def __repr__(self) -> str:
         return self.__str__()
