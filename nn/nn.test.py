@@ -78,7 +78,7 @@ class NNTests(ut.TestCase):
 
         
 
-    def dontrun_testSimplestNet(self):
+    def testSimplestNet(self):
         layers = [FullyConnectedLayer(1, 1)]
         net = NN(layers)
         

@@ -281,7 +281,43 @@ class AutodiffTests(ut.TestCase):
         y = Mult(a, b)
         z = Add(c, y)
         dzdy = z.diff(y)
-        self.assertClose(dzdy, 0.0)
+        self.assertClose(np.squeeze(dzdy), np.array(1.0))
+
+
+    def testEffectiveExpressionEquality(self):
+        a = Variable(np.array([1]))
+        b = Variable(np.array([2]))
+        c1 = Mult(a, b)
+        c2 = Mult(a, b)
+        # c1 and c1 live at different memory-adresses,
+        # so conventionally c1 != c2.
+        # Only evaluates to equal if
+        # autodiff has a concept of expression-equality.
+        self.assertEqual(c1, c2)
+
+
+    def testNotTooDeepWithNewVariable(self):
+        """
+            y = a*b
+            z = c + y
+            dz/dy = ddy(c + y)
+                  = 0 + dy/dy
+                    .... good:
+                        = 1.0
+                    .... bad:
+                        = ddy (a*b) 
+                        = da/dy b + a db/dy
+                        = 0*b + a*0
+                        = 0
+        """
+        a = Variable(np.array([1]))
+        b = Variable(np.array([2]))
+        c = Variable(np.array([3]))
+        y = Mult(a, b)
+        z = Add(c, y)
+        y2 = Mult(a, b)
+        dzdy = z.diff(y2)
+        self.assertClose(np.squeeze(dzdy), np.array(1.0))
     
 
 
