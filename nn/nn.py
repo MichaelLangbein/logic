@@ -22,13 +22,13 @@ delta Wl = - alpha dE/dWl
 
 class Layer:
     def setI(self, i: Node):
-        pass
+        raise Exception("Method `setI` not implemented")
     def x(self):
-        pass
+        raise Exception("Method `x` not implemented")
     def y(self):
-        pass
+        raise Exception("Method `y` not implemented")
     def updateParas(self, dE_dx):
-        pass
+        raise Exception("Method `updateParas` not implemented")
 
 
 class FullyConnectedLayer(Layer):
@@ -93,9 +93,11 @@ class NN:
         self.layer0.setI(Variable(input))
         E = SSE(self.layerL.y(), trueVal)
 
-        dE_dx_l = E.diff(self.layerL.x)
+        dE_dx_l = E.diff(self.layerL.x())
+        self.layerL.updateParas(dE_dx_l)
 
-        for l in range(self.L - 1, 0):
+        Lmin1 = max(self.L - 1, 0)
+        for l in range(Lmin1, 0):
             layer = self.layers[l]
             nextLayer = self.layers[l+1]
 
@@ -104,4 +106,33 @@ class NN:
             dE_dx_l = matMul(dE_dx_lp1, dx_lp1_dx_l)
 
             layer.updateParas(dE_dx_l)
+
+    def backwardBatch(self, inputs: list[np.array], trueVals: list[np.array]):
+        summed_dE_dx_l = [0.0 for i in range(len(self.layers))]
+        batchSize = len(inputs)
+        
+        for i in range(batchSize):
+            input = inputs[i]
+            trueVal = trueVals[i]
+
+            self.layer0.setI(Variable(input))
+            E = SSE(self.layerL.y(), trueVal)
+
+            dE_dx_l = E.diff(self.layerL.x())
+            summed_dE_dx_l[self.L] += dE_dx_l
+            print(dE_dx_l)
+            Lmin1 = max(self.L - 1, 0)
+            for l in range(Lmin1, 0):
+                layer     = self.layers[l]
+                nextLayer = self.layers[l+1]
+
+                dE_dx_lp1   = dE_dx_l
+                dx_lp1_dx_l = nextLayer.x().diff(layer.x())
+                dE_dx_l     = matMul(dE_dx_lp1, dx_lp1_dx_l)
+
+                summed_dE_dx_l[l] += dE_dx_l
+        
+        for l in range(self.L):
+            dE_dx_l = summed_dE_dx_l[l] / batchSize
+            self.layers[l].updateParas(dE_dx_l)
 

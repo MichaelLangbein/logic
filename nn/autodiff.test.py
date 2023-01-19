@@ -259,6 +259,29 @@ class AutodiffTests(ut.TestCase):
 
         self.assertClose(betterSseVal, 0)
         self.assertClose(betterSseDx, np.array([0, 0, 0]))
+
+
+    def testNotTooDeep(self):
+        """
+            y = a*b
+            z = c + y
+            dz/dy = ddy(c + y)
+                  = 0 + dy/dy
+                    .... good:
+                        = 1.0
+                    .... bad:
+                        = ddy (a*b) 
+                        = da/dy b + a db/dy
+                        = 0*b + a*0
+                        = 0
+        """
+        a = Variable(np.array([1]))
+        b = Variable(np.array([2]))
+        c = Variable(np.array([3]))
+        y = Mult(a, b)
+        z = Add(c, y)
+        dzdy = z.diff(y)
+        self.assertClose(dzdy, 0.0)
     
 
 

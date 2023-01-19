@@ -1,15 +1,15 @@
 #%%
 import numpy as np
 
-
-
 #%%
 
 
 def matMul(m1, m2):
-    if type(m1) == int or type(m2) == int:
-        return np.squeeze(m1 * m2)
-    return np.squeeze(m1 @ m2)
+    m1s = np.squeeze(m1)
+    m2s = np.squeeze(m2)
+    if m1s.shape == () or m2s.shape == ():
+        return np.squeeze(m1s * m2s)
+    return np.squeeze(m1s @ m2s)
 
 
 class Node:
@@ -18,6 +18,9 @@ class Node:
 
     def diff(self, node) -> np.array:
         raise Exception('Diff not implemented')
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 class Variable(Node):
@@ -33,17 +36,25 @@ class Variable(Node):
         else:
             return np.zeros(self.value.shape)
 
+    def __str__(self) -> str:
+        return f"{self.value}"
+
 
 
 class Zero(Variable):
     def __init__(self, shape):
         super().__init__(np.zeros(shape))
 
+    def __str__(self) -> str:
+        return "0"
+
 
 class One(Variable):
     def __init__(self, shape):
         super().__init__(np.ones(shape))
 
+    def __str__(self) -> str:
+        return "1"
 
 
 class Add(Node):
@@ -55,7 +66,12 @@ class Add(Node):
         return self.n1.eval() + self.n2.eval()
 
     def diff(self, var: Node):
+        if self == var:
+            return np.eye(self.n1.shape[0])
         return self.n1.diff(var) + self.n2.diff(var)
+
+    def __str__(self) -> str:
+        return f"{self.n1} + {self.n2}"
 
 
 class Minus(Node):
@@ -67,8 +83,12 @@ class Minus(Node):
         return self.n1.eval() - self.n2.eval()
 
     def diff(self, var: Node):
+        if self == var:
+            return np.eye(self.n1.shape[0])
         return self.n1.diff(var) - self.n2.diff(var)
 
+    def __str__(self) -> str:
+        return f"{self.n1} - {self.n2}"
 
 
 class Mult(Node):
@@ -80,7 +100,16 @@ class Mult(Node):
         return matMul(self.n1.eval(), self.n2.eval())
 
     def diff(self, var: Node):
-        return matMul(self.n1.diff(var), self.n2.eval()) + matMul(self.n1.eval(), self.n2.diff(var))
+        if self == var:
+            return np.eye(self.n1.shape[0])
+        n1 = self.n1.eval()
+        n2 = self.n2.eval()
+        d_n1 = self.n1.diff(var)
+        d_n2 = self.n2.diff(var)
+        return matMul(d_n1, n2) + matMul(n1, d_n2)
+
+    def __str__(self) -> str:
+        return f"{self.n1} * {self.n2}"
 
 
 class Inv(Node):
@@ -92,10 +121,15 @@ class Inv(Node):
 
     def diff(self, var):
         """ https://math.stackexchange.com/questions/1471825/derivative-of-the-inverse-of-a-matrix """
+        if self == var:
+            return np.eye(self.n.shape[0])
         nV = self.n.eval()
         nD = self.n.diff(var)
         nI = np.invert(nV)
         return - matMul(nI, matMul(nD, nI))
+
+    def __str__(self) -> str:
+        return f"({self.n})^-1"
 
 
 
@@ -107,7 +141,12 @@ class Div(Node):
         return self.n.eval()
 
     def diff(self, var: Node):
+        if self == var:
+            return np.eye(self.n.shape[0])
         return self.n.diff(var)
+
+    def __str__(self) -> str:
+        return f"{self.n}"
 
 
 class Exp(Node):
@@ -118,9 +157,14 @@ class Exp(Node):
         return np.exp(self.n.eval())
 
     def diff(self, var: Node):
+        if self == var:
+            return np.eye(self.n.shape[0])
         nD = self.n.diff(var)
         eV = self.eval()
         return nD * eV
+
+    def __str__(self) -> str:
+        return f"exp({self.n})"
 
 
 class Ln(Node):
@@ -131,11 +175,15 @@ class Ln(Node):
         return np.log(self.u.eval())
 
     def diff(self, var: Node):
+        if self == var:
+            return np.eye(self.u.shape[0])
         u = self.u.eval()
         uD = self.u.diff(var)
         ddu_lnu = np.diag(1 / u)
         return matMul(ddu_lnu, uD)
 
+    def __str__(self) -> str:
+        return f"ln({self.u})"
 
 
 
@@ -144,17 +192,25 @@ class PwDiv(Node):
         point-wise divide
     """
     def __init__(self, a: Node, b: Node):
-        self.nodes = [a, b]
+        self.a = a
+        self.b = b
 
     def eval(self):
-        [aV, bV] = [n.eval() for n in self.nodes]
+        aV = self.a.eval()
+        bV = self.b.eval()
         return np.divide(aV, bV)
 
     def diff(self, variable: Variable):
-        [a, b] = [n.eval() for n in self.nodes]
-        [da, db] = [n.diff(variable) for n in self.nodes]
+        if self == variable:
+            return np.eye(self.a.shape[0])
+        a = self.a.eval()
+        b = self.b.eval()
+        da = self.a.diff(variable)
+        db = self.b.diff(variable)
         return (da * b - a * db) / b**2
 
+    def __str__(self) -> str:
+        return f"({self.a} ./ {self.b})"
 
         
 class PwProd:
@@ -169,6 +225,8 @@ class PwProd:
         return np.prod(nodeVals, 0)
 
     def diff(self, variable: Variable):
+        if self == variable:
+            return np.eye(self.prods[0].shape[0])
         """
             d/dx uv = (du/dx)^T v  +  (dv/dx)^T u
             d/du uv = (du/du)^T v
@@ -185,7 +243,9 @@ class PwProd:
             s += p
         return s
 
-
+    def __str__(self) -> str:
+        entries = [n for n in self.nodes].join(", ")
+        return f"prod({entries})"
 
 
 class ScalarMult(Node):
@@ -198,8 +258,13 @@ class ScalarMult(Node):
         return self.scalar * nodeVal
 
     def diff(self, variable: Variable):
+        if self == variable:
+            return np.eye(self.node.shape[0])
         diffVal = self.node.diff(variable)
         return self.scalar * diffVal
+
+    def __str__(self) -> str:
+        return f"{self.scalar} * {self.node}"
 
 
 class InnerSum(Node):
@@ -211,12 +276,17 @@ class InnerSum(Node):
         return np.sum(nodeVal)
 
     def diff(self, variable: Variable):
+        if self == variable:
+            return np.eye(1)
         """
             d/dx sum(u) = [d/dx1 sum(u), d/dx2 sum(u), ...]
                         = col_sum(du/dx)
         """
         nodeDiff = self.node.diff(variable)
         return np.sum(nodeDiff, 0)
+
+    def __str__(self) -> str:
+        return f"innersum({self.node})"
 
 
 # def Pow(Node):
@@ -248,6 +318,8 @@ class ScalarPower(Node):
         return np.power(av, self.s)
 
     def diff(self, x: Node):
+        if self == x:
+            return np.eye(self.a.shape[0])
         """
             d/dx a^s = s a^(s-1) da/dx
 
@@ -257,6 +329,9 @@ class ScalarPower(Node):
         apowsm1 = av**(s-1)
         da_dx = self.a.diff(x)
         return s * np.diag(apowsm1) @ da_dx
+
+    def __str__(self) -> str:
+        return f"({self.a})^{self.s}"
 
 
 def Sigmoid(x: Node):
