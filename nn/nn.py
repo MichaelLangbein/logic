@@ -121,8 +121,7 @@ class NN:
             dE_dx_l = E.diff(self.layerL.x())
             summed_dE_dx_l[self.L] += dE_dx_l
 
-            Lmin1 = max(self.L - 1, 0)
-            for l in range(Lmin1, 0):
+            for l in reversed(range(0, self.L)):
                 layer     = self.layers[l]
                 nextLayer = self.layers[l+1]
 
