@@ -11,15 +11,18 @@ import numpy as np
 
 
 def matMul(m1, m2):
-    m1s = np.squeeze(m1)
-    m2s = np.squeeze(m2)
-    if m1s.shape == () or m2s.shape == ():
-        result = np.squeeze(m1s * m2s)
-    else:
-        result = np.squeeze(m1s @ m2s)
-    if result.shape == ():
-        return np.array([result])
-    return result
+    try:
+        m1s = np.squeeze(m1)
+        m2s = np.squeeze(m2)
+        if m1s.shape == () or m2s.shape == ():
+            result = np.squeeze(m1s * m2s)
+        else:
+            result = np.squeeze(m1s @ m2s)
+        if result.shape == ():
+            return np.array([result])
+        return result
+    except:
+        raise Exception("Something went wrong.")
 
 
 class Node:

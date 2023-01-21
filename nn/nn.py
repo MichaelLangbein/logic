@@ -78,7 +78,7 @@ class NN:
         self.layer0 = self.layers[0]        
         self.layerL = self.layers[L]
 
-        for l in range(1, L):
+        for l in range(1, len(layers)):
             layer = self.layers[l]
             previousLayer = self.layers[l - 1]
             layer.setI(previousLayer.y())
