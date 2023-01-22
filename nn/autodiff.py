@@ -397,6 +397,33 @@ class ScalarPower(Node):
         return f"({self.a})^{self.s}"
 
 
+# class Sigmoid(Node):
+#     def __init__(self, a: Node):
+#         # input
+#         self.a = a
+#         # sigmoid of input
+#         num = One(1)
+#         negX = ScalarMult(-1, self.a)
+#         den = Add(One(1), Exp(negX))
+#         sigmoid = PwDiv(num, den)
+#         # store for later
+#         self.func = sigmoid
+
+#     def id(self):
+#         return f"Sigmoid({self.a.id()})"
+
+#     def eval(self):
+#         return self.func.eval()
+
+#     def diff(self, x: Node):
+#         if self == x:
+#             return np.eye(self.eval().shape[0])
+#         return self.func.diff(x)
+
+#     def __str__(self) -> str:
+#         return f"Sigmoid({self.a})"
+
+
 def Sigmoid(x: Node):
     num = One(1)
     negX = ScalarMult(-1, x)

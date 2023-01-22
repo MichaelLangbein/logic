@@ -34,7 +34,7 @@ class Layer:
 class FullyConnectedLayer(Layer):
     def __init__(self, inputs: int, outputs: int):
         self.i = Variable(np.random.random(inputs))
-        self.W = Variable(np.random.random((inputs, outputs)))
+        self.W = Variable(np.random.random((outputs, inputs)))
 
     def setI(self, i: Node):
         self.i = i
