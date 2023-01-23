@@ -1,5 +1,6 @@
 #%%
 import numpy as np
+import Tensor from tensor
 
 """
 # TODOs
@@ -8,21 +9,6 @@ import numpy as np
 """
 
 #%%
-
-
-def matMul(m1, m2):
-    try:
-        m1s = np.squeeze(m1)
-        m2s = np.squeeze(m2)
-        if m1s.shape == () or m2s.shape == ():
-            result = np.squeeze(m1s * m2s)
-        else:
-            result = np.squeeze(m1s @ m2s)
-        if result.shape == ():
-            return np.array([result])
-        return result
-    except:
-        raise Exception("Something went wrong.")
 
 
 class Node:
@@ -49,7 +35,7 @@ class Node:
 
 
 class Variable(Node):
-    def __init__(self, value: np.array):
+    def __init__(self, value: Tensor):
         self.value = value
         self.__id = f"{np.random.rand()}{np.random.rand()}"
 
@@ -63,7 +49,7 @@ class Variable(Node):
         if self == variable:
             return np.eye(self.value.shape[0])
         else:
-            return np.zeros(self.value.shape)
+            return 0
 
     def __str__(self) -> str:
         return f"{self.value}"
@@ -267,16 +253,18 @@ class PwProd:
     """
         Point-wise product
     """
-    def __init__(self, nodes):
-        self.nodes = nodes
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
 
     def id(self):
-        ids = [n.id() for n in self.nodes].join(", ")
+        ids = f"{self.a.id()}, {self.b.id()}"
         return f"PwProd({ids})"
 
     def eval(self):
-        nodeVals = [n.eval() for n in self.nodes]
-        return np.prod(nodeVals, 0)
+        aVal = self.a.eval()
+        bVal = self.b.eval()
+        return np.prod([aVal, bVal], 0)
 
     def diff(self, variable: Variable):
         if self == variable:
@@ -286,15 +274,15 @@ class PwProd:
             d/du uv = (du/du)^T v
                     = eye * v
         """
-        nodeVals = [n.eval() for n in self.nodes]
-        nodeDiffs = [n.diff(variable) for n in self.nodes]
-        s = np.zeros(nodeDiffs[0].shape)
-        for i in range(len(self.nodes)):
-            p = np.ones(nodeDiffs[0].shape)
-            for j in range(len(self.nodes)):
-                e = nodeDiffs[j].transpose() if i == j else nodeVals[j]
-                p *= e
-            s += p
+        aVal = self.a.eval()
+        bVal = self.b.eval()
+        aSqu = matMul(np.eye(aVal.shape[0]), aVal)
+        bSqu = matMul(np.eye(bVal.shape[0]), bVal)
+        aDif = self.a.diff(variable)
+        bDif = self.b.diff(variable)
+        aDifT = aDif if np.isscalar(aDif) else aDif.transpose()
+        bDifT = bDif if np.isscalar(bDif) else bDif.transpose()
+        s = matMul(aDifT, bSqu) + matMul(bDifT, aSqu)
         return s
 
     def __str__(self) -> str:
@@ -391,7 +379,7 @@ class ScalarPower(Node):
         av = self.a.eval()
         apowsm1 = av**(s-1)
         da_dx = self.a.diff(x)
-        return s * np.diag(apowsm1) @ da_dx
+        return s * matMul(apowsm1, da_dx)
 
     def __str__(self) -> str:
         return f"({self.a})^{self.s}"
