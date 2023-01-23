@@ -2,6 +2,10 @@
 import numpy as np
 import Tensor from tensor
 
+
+# Derivatives on tensors: https://www.et.byu.edu/~vps/ME505/AAEM/V5-07.pdf
+# https://explained.ai/matrix-calculus/index.html#sec:1.3
+
 """
 # TODOs
  - the test `if var == self` can probably be moved into Node
