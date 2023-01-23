@@ -1,6 +1,6 @@
 import unittest as ut
 import numpy as np
-from autodiff import SSE, Mult, Sigmoid, Variable
+from autodiff import SSE, Mult, Sigmoid, Variable, matMul
 from nn import FullyConnectedLayer, NN, training, validation
 
 
@@ -66,6 +66,48 @@ class NNTests(ut.TestCase):
         error2 = error2V.eval()
         self.assertLess(error2, error)
 
+
+    def testLayerDimensions(self):
+
+        input = np.array([1.0, 2.0, 3.0])
+        trueVal = np.array([2.1])
+        
+        # Setup
+        layer0 = FullyConnectedLayer(3, 3)
+        layer1 = FullyConnectedLayer(3, 2)
+        layer2 = FullyConnectedLayer(2, 1)
+
+        layer0.setI(Variable(input))
+        layer1.setI(layer0.y())
+        layer2.setI(layer1.y())
+        E = SSE(layer2.y(), trueVal)
+
+
+        # Backprop last layer
+        dE_dx_2 = E.diff(layer2.x())
+        layer2.updateParas(dE_dx_2)
+        #
+        self.assertEqual(dE_dx_2.shape, (1,))
+
+
+        # Backprop middle layer
+        dx_2_dx_1 = layer2.x().diff(layer1.x())
+        dE_dx_1 = matMul(dE_dx_2, dx_2_dx_1)
+        layer1.updateParas(dE_dx_1)
+        #
+        self.assertEqual(dE_dx_1.shape, (2,))
+        self.assertEqual(dE_dx_2.shape, (1,))
+        self.assertEqual(dx_2_dx_1.shape, (1,2))
+
+
+        # Backprop first layer
+        dx_1_dx_0 = layer1.x().diff(layer0.x())
+        dE_dx_0 = matMul(dE_dx_1, dx_1_dx_0)
+        layer0.updateParas(dE_dx_0)
+        #
+        self.assertEqual(dE_dx_0.shape, (3,))
+        self.assertEqual(dE_dx_1.shape, (2,))
+        self.assertEqual(dx_1_dx_0.shape, (2,3))
         
 
     def testSimplestNet(self):

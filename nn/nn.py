@@ -52,7 +52,7 @@ class FullyConnectedLayer(Layer):
         delta Wl = - alpha dE/dWl
         """
         dx_dW = self.i.eval()
-        self.W.value -= 0.01 * dE_dx * dx_dW
+        self.W.value -= 0.01 * matMul(dE_dx, dx_dW)
 
 
 class ConvolutionalLayer(Layer):
@@ -96,8 +96,7 @@ class NN:
         dE_dx_l = E.diff(self.layerL.x())
         self.layerL.updateParas(dE_dx_l)
 
-        Lmin1 = max(self.L - 1, 0)
-        for l in range(Lmin1, 0):
+        for l in reversed(range(0, self.L)):
             layer = self.layers[l]
             nextLayer = self.layers[l+1]
 
