@@ -67,7 +67,7 @@ class Tensor:
         index = 0
         p = product(dims[1:])
         for i in range(dims[0]):
-            newarr.append(package(array1D[index:index+p], dims[1:]))
+            newarr.append(Tensor.package(array1D[index:index+p], dims[1:]))
             index += p
 
         return Tensor(newarr)
@@ -76,7 +76,19 @@ class Tensor:
         arr = [0] * product(dims)
         if len(dims) == 1:
             return Tensor(arr)
-        return package(arr, dims)
+        return Tensor.package(arr, dims)
+
+    def eye(*dims):
+        arr = []
+        for d, dim in enumerate(dims):
+            for i in range(dim):
+                if i == d:
+                    arr.append(1.0)
+                else:
+                    arr.append(0.0)
+        if len(dims) == 1:
+            return Tensor(arr)
+        return Tensor.package(arr, dims)
 
     def rand(*dims):
         arr = []

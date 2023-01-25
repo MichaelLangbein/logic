@@ -1,6 +1,6 @@
 #%%
 import numpy as np
-import Tensor from tensor
+from tensor import Tensor
 
 
 # Derivatives on tensors: https://www.et.byu.edu/~vps/ME505/AAEM/V5-07.pdf
@@ -51,7 +51,8 @@ class Variable(Node):
 
     def diff(self, variable: Node):
         if self == variable:
-            return np.eye(self.value.shape[0])
+            derivativeDims = self.value.dimensions + self.value.dimensions
+            return Tensor.eye(*derivativeDims)
         else:
             return 0
 
@@ -88,7 +89,8 @@ class Add(Node):
 
     def diff(self, var: Node):
         if self == var:
-            return np.eye(self.eval().shape[0])
+            derivativeDims = self.value.dimensions + self.value.dimensions
+            return Tensor.eye(*derivativeDims)
         return self.n1.diff(var) + self.n2.diff(var)
 
     def __str__(self) -> str:
@@ -108,7 +110,8 @@ class Minus(Node):
 
     def diff(self, var: Node):
         if self == var:
-            return np.eye(self.eval().shape[0])
+            derivativeDims = self.value.dimensions + self.value.dimensions
+            return Tensor.eye(*derivativeDims)
         return self.n1.diff(var) - self.n2.diff(var)
 
     def __str__(self) -> str:
@@ -124,16 +127,17 @@ class Mult(Node):
         return f"Mult({self.n1.id()}, {self.n2.id()})"
 
     def eval(self):
-        return matMul(self.n1.eval(), self.n2.eval())
+        return self.n1.eval() * self.n2.eval()
 
     def diff(self, var: Node):
         if self == var:
-            return np.eye(self.eval().shape[0])
+            derivativeDims = self.value.dimensions + self.value.dimensions
+            return Tensor.eye(*derivativeDims)
         n1 = self.n1.eval()
         n2 = self.n2.eval()
         d_n1 = self.n1.diff(var)
         d_n2 = self.n2.diff(var)
-        return matMul(d_n1, n2) + matMul(n1, d_n2)
+        return (d_n1 * n2) + (n1 * d_n2)
 
     def __str__(self) -> str:
         return f"{self.n1} * {self.n2}"
@@ -152,11 +156,12 @@ class Inv(Node):
     def diff(self, var):
         """ https://math.stackexchange.com/questions/1471825/derivative-of-the-inverse-of-a-matrix """
         if self == var:
-            return np.eye(self.eval().shape[0])
+            derivativeDims = self.value.dimensions + self.value.dimensions
+            return Tensor.eye(*derivativeDims)
         nV = self.n.eval()
         nD = self.n.diff(var)
         nI = np.invert(nV)
-        return - matMul(nI, matMul(nD, nI))
+        return - (nI * (nD * nI))
 
     def __str__(self) -> str:
         return f"({self.n})^-1"
@@ -174,7 +179,8 @@ class Div(Node):
 
     def diff(self, var: Node):
         if self == var:
-            return np.eye(self.eval().shape[0])
+            derivativeDims = self.value.dimensions + self.value.dimensions
+            return Tensor.eye(*derivativeDims)
         return self.n.diff(var)
 
     def __str__(self) -> str:
@@ -193,7 +199,8 @@ class Exp(Node):
 
     def diff(self, var: Node):
         if self == var:
-            return np.eye(self.eval().shape[0])
+            derivativeDims = self.value.dimensions + self.value.dimensions
+            return Tensor.eye(*derivativeDims)
         nD = self.n.diff(var)
         eV = self.eval()
         return nD * eV
@@ -214,11 +221,12 @@ class Ln(Node):
 
     def diff(self, var: Node):
         if self == var:
-            return np.eye(self.eval().shape[0])
+            derivativeDims = self.value.dimensions + self.value.dimensions
+            return Tensor.eye(*derivativeDims)
         u = self.u.eval()
         uD = self.u.diff(var)
         ddu_lnu = np.diag(1 / u)
-        return matMul(ddu_lnu, uD)
+        return ddu_lnu * uD
 
     def __str__(self) -> str:
         return f"ln({self.u})"
@@ -242,7 +250,8 @@ class PwDiv(Node):
 
     def diff(self, variable: Variable):
         if self == variable:
-            return np.eye(self.eval().shape[0])
+            derivativeDims = self.value.dimensions + self.value.dimensions
+            return Tensor.eye(*derivativeDims)
         a = self.a.eval()
         b = self.b.eval()
         da = self.a.diff(variable)
@@ -272,7 +281,8 @@ class PwProd:
 
     def diff(self, variable: Variable):
         if self == variable:
-            return np.eye(self.eval().shape[0])
+            derivativeDims = self.value.dimensions + self.value.dimensions
+            return Tensor.eye(*derivativeDims)
         """
             d/dx uv = (du/dx)^T v  +  (dv/dx)^T u
             d/du uv = (du/du)^T v
@@ -280,13 +290,11 @@ class PwProd:
         """
         aVal = self.a.eval()
         bVal = self.b.eval()
-        aSqu = matMul(np.eye(aVal.shape[0]), aVal)
-        bSqu = matMul(np.eye(bVal.shape[0]), bVal)
         aDif = self.a.diff(variable)
         bDif = self.b.diff(variable)
         aDifT = aDif if np.isscalar(aDif) else aDif.transpose()
         bDifT = bDif if np.isscalar(bDif) else bDif.transpose()
-        s = matMul(aDifT, bSqu) + matMul(bDifT, aSqu)
+        s = (aDifT * bVal) + (bDifT * aVal)
         return s
 
     def __str__(self) -> str:
@@ -308,7 +316,8 @@ class ScalarMult(Node):
 
     def diff(self, variable: Variable):
         if self == variable:
-            return np.eye(self.eval().shape[0])
+            derivativeDims = self.value.dimensions + self.value.dimensions
+            return Tensor.eye(*derivativeDims)
         diffVal = self.node.diff(variable)
         return self.scalar * diffVal
 
@@ -329,7 +338,8 @@ class InnerSum(Node):
 
     def diff(self, variable: Variable):
         if self == variable:
-            return np.eye(self.eval().shape[0])
+            derivativeDims = self.value.dimensions + self.value.dimensions
+            return Tensor.eye(*derivativeDims)
         """
             d/dx sum(u) = [d/dx1 sum(u), d/dx2 sum(u), ...]
                         = col_sum(du/dx)
@@ -374,7 +384,8 @@ class ScalarPower(Node):
 
     def diff(self, x: Node):
         if self == x:
-            return np.eye(self.eval().shape[0])
+            derivativeDims = self.value.dimensions + self.value.dimensions
+            return Tensor.eye(*derivativeDims)
         """
             d/dx a^s = s a^(s-1) da/dx
 
@@ -383,7 +394,7 @@ class ScalarPower(Node):
         av = self.a.eval()
         apowsm1 = av**(s-1)
         da_dx = self.a.diff(x)
-        return s * matMul(apowsm1, da_dx)
+        return s * (apowsm1 * da_dx)
 
     def __str__(self) -> str:
         return f"({self.a})^{self.s}"

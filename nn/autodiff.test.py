@@ -1,5 +1,6 @@
 import unittest as ut
 import numpy as np
+from tensor import Tensor
 from autodiff import Add, Exp, InnerSum, Mult, PwProd, PwDiv, Variable, ScalarMult, Sigmoid, Softmax, SSE, ScalarPower
 
 
@@ -47,7 +48,7 @@ class AutodiffTests(ut.TestCase):
         """
             du/du = eye
         """
-        u = Variable(np.array([1, 2, 3]))
+        u = Variable(Tensor([1, 2, 3]))
         dudu = u.diff(u)
         self.assertClose(dudu, np.eye(3))
 
@@ -57,13 +58,13 @@ class AutodiffTests(ut.TestCase):
             ds/du = eye
             ds/dv = eye
         """
-        u = Variable(np.array([1, 2, 3]))
-        v = Variable(np.array([2, 3, 4]))
+        u = Variable(Tensor([1, 2, 3]))
+        v = Variable(Tensor([2, 3, 4]))
         s = Add(u, v)
         sVal = s.eval()
         dSdu = s.diff(u)
         dSdv = s.diff(v)
-        self.assertClose(sVal, np.array([3, 5, 7]))
+        self.assertClose(sVal, Tensor([3, 5, 7]))
         self.assertClose(dSdu, np.eye(3))
         self.assertClose(dSdv, np.eye(3))
 
@@ -72,18 +73,18 @@ class AutodiffTests(ut.TestCase):
             i = InnerSum(u)
             di/du = 1^T
         """
-        u = Variable(np.array([1, 2, 3]))
+        u = Variable(Tensor([1, 2, 3]))
         i = InnerSum(u)
         iVal = i.eval()
         dIdu = i.diff(u)
         self.assertClose(iVal, 6)
-        self.assertClose(dIdu, np.array([1, 1, 1]))
+        self.assertClose(dIdu, Tensor([1, 1, 1]))
 
-        v = Variable(np.array([2, 3, 4]))
+        v = Variable(Tensor([2, 3, 4]))
         s = Add(u, v)
         si = InnerSum(s)
         dsidv = si.diff(v)
-        self.assertClose(dsidv, np.array([1, 1, 1]))
+        self.assertClose(dsidv, Tensor([1, 1, 1]))
 
     def testNestedExpression(self):
         """
@@ -93,22 +94,22 @@ class AutodiffTests(ut.TestCase):
                    = 1_1xn * 1_nxn
                    = 1_1xn 
         """
-        u = Variable(np.array([1, 2, 3]))
-        v = Variable(np.array([2, 3, 4]))
+        u = Variable(Tensor([1, 2, 3]))
+        v = Variable(Tensor([2, 3, 4]))
         sv = Add(u, v)
         si = InnerSum(sv)
         dsidu = si.diff(u)
-        self.assertClose(dsidu, np.array([1, 1, 1]))
+        self.assertClose(dsidu, Tensor([1, 1, 1]))
     
     def testMatrixVectorMult(self):
-        v = Variable(np.array([1., 2.]))
-        M = Variable(np.array([[1., 2.], [2., 1.]]))
+        v = Variable(Tensor([1., 2.]))
+        M = Variable(Tensor([1., 2.], [2., 1.]))
         p = Mult(M, v)
         pVal = p.eval()
         pDifV = p.diff(v)
         pDifM = p.diff(M)
 
-        pExpected = np.array([5, 4])
+        pExpected = Tensor([5, 4])
         self.assertClose(pVal, pExpected)
         self.assertClose(pDifV, M.value)
         self.assertClose(pDifM, v.value)
@@ -119,23 +120,23 @@ class AutodiffTests(ut.TestCase):
             de^u/dx = de^u/du du/dx
                     = eye(e^ui) du/dx
         """
-        u = Variable(np.array([1, 2, 3]))
+        u = Variable(Tensor([1, 2, 3]))
         e = Exp(u)
         dedu = e.diff(u)
-        self.assertClose(dedu, np.array([
+        self.assertClose(dedu, Tensor(
             [np.exp(1), 0, 0],
             [0, np.exp(2), 0],
             [0, 0, np.exp(3)],
-        ]))
+        ))
 
-        v = Variable(np.array([2, 3, 4]))
+        v = Variable(Tensor([2, 3, 4]))
         e2 = Exp(Add(u, v))
         de2dv = e2.diff(v)
-        self.assertClose(de2dv, np.array([
+        self.assertClose(de2dv, Tensor(
             [np.exp(1 + 2), 0, 0],
             [0, np.exp(2 + 3), 0],
             [0, 0, np.exp(3 + 4)],
-        ]))
+        ))
     
     def testProd(self):
         """
@@ -144,15 +145,16 @@ class AutodiffTests(ut.TestCase):
                     = eye() v
                     = eye(v)
         """
-        u = Variable(np.array([1, 2, 3]))
-        v = Variable(np.array([2, 3, 4]))
-        p = PwProd([u, v])
+        u = Variable(Tensor([1, 2, 3]))
+        v = Variable(Tensor([2, 3, 4]))
+        p = PwProd(u, v)
         dpdu = p.diff(u)
-        self.assertClose(dpdu, np.array([
+        self.assertClose(dpdu, Tensor(
             [2, 0, 0],
             [0, 3, 0],
             [0, 0, 4]
-        ]))
+        ))
+
 
         """
             d/du (u+v)*v = (d/du u+v)^T v  +  (u+v) (d/du  v)^T
@@ -162,34 +164,34 @@ class AutodiffTests(ut.TestCase):
                          = eye(v)
         """
         s = Add(u, v)
-        p2 = PwProd([s, v])
+        p2 = PwProd(s, v)
         dp2du = p2.diff(u)
-        self.assertClose(dp2du, np.array([
+        self.assertClose(dp2du, Tensor(
             [2, 0, 0],
             [0, 3, 0],
             [0, 0, 4]
-        ]))
+        ))
 
     def testPwDiv(self):
-        u = Variable(np.array([1, 2, 3]))
-        v = Variable(np.array([2, 3, 4]))
+        u = Variable(Tensor([1, 2, 3]))
+        v = Variable(Tensor([2, 3, 4]))
         d = PwDiv(u, v)
         dddu = d.diff(u)
-        self.assertClose(dddu, np.array([
+        self.assertClose(dddu, Tensor(
             [1/2, 0, 0],
             [0, 1/3, 0],
             [0, 0, 1/4]
-        ]))
+        ))
         dddv = d.diff(v)
-        self.assertClose(dddv, np.array([
+        self.assertClose(dddv, Tensor(
             [-1/(2**2), 0, 0],
             [0, -2/(3**2), 0],
             [0, 0, -3/(4**2)]
-        ]))
+        ))
 
 
     def testScalarPow(self):
-        x = np.array([1, 2])
+        x = Tensor([1, 2])
         x2 = x**2
 
         xV = Variable(x)
@@ -209,7 +211,7 @@ class AutodiffTests(ut.TestCase):
         def dsig(x):
             return np.diag(sig(x) * (1 - sig(x)))
 
-        data = np.array([0, 1000])
+        data = Tensor([0, 1000])
 
         x = Variable(data)
         s = Sigmoid(x)
@@ -223,7 +225,7 @@ class AutodiffTests(ut.TestCase):
         def sm(x):
             return np.exp(x) / np.sum(np.exp(x))
 
-        data = np.array([0.6, 1.0])
+        data = Tensor([0.6, 1.0])
 
         x = Variable(data)
         s = Softmax(x)
@@ -236,7 +238,7 @@ class AutodiffTests(ut.TestCase):
         def sse(ySim, yObs):
             return np.sum((ySim - yObs)**2)
 
-        x = np.array([1, 2, 3])
+        x = Tensor([1, 2, 3])
         ySim = 2 * x
         yObs = x**2
         sseObs = sse(ySim, yObs)
@@ -258,7 +260,7 @@ class AutodiffTests(ut.TestCase):
         betterSseDy = betterSseV.diff(ySimV)
 
         self.assertClose(betterSseVal, 0)
-        self.assertClose(betterSseDx, np.array([0, 0, 0]))
+        self.assertClose(betterSseDx, Tensor([0, 0, 0]))
 
 
     def testNotTooDeep(self):
@@ -275,9 +277,9 @@ class AutodiffTests(ut.TestCase):
                         = 0*b + a*0
                         = 0
         """
-        a = Variable(np.array([1]))
-        b = Variable(np.array([2]))
-        c = Variable(np.array([3]))
+        a = Variable(Tensor([1]))
+        b = Variable(Tensor([2]))
+        c = Variable(Tensor([3]))
         y = Mult(a, b)
         z = Add(c, y)
         dzdy = z.diff(y)
@@ -285,8 +287,8 @@ class AutodiffTests(ut.TestCase):
 
 
     def testEffectiveExpressionEquality(self):
-        a = Variable(np.array([1]))
-        b = Variable(np.array([2]))
+        a = Variable(Tensor([1]))
+        b = Variable(Tensor([2]))
         c1 = Mult(a, b)
         c2 = Mult(a, b)
         # c1 and c1 live at different memory-adresses,
@@ -310,9 +312,9 @@ class AutodiffTests(ut.TestCase):
                         = 0*b + a*0
                         = 0
         """
-        a = Variable(np.array([1]))
-        b = Variable(np.array([2]))
-        c = Variable(np.array([3]))
+        a = Variable(Tensor([1]))
+        b = Variable(Tensor([2]))
+        c = Variable(Tensor([3]))
         y = Mult(a, b)
         z = Add(c, y)
         y2 = Mult(a, b)
