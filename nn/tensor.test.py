@@ -23,6 +23,22 @@ class AutodiffTests(ut.TestCase):
         t5 = t1 @ t4
         self.assertEqual(t5.asArray(), [[5, 4], [4, 5]])
 
+    def testTensorEye(self):
+        t1 = Tensor.eye(1)
+        t2 = Tensor.eye(2, 2)
+        t3 = Tensor.eye(3, 3)
+        t4 = Tensor.eye(3, 3, 3)
+        self.assertEqual(t1.asArray(), [1.0])
+        self.assertEqual(t2.asArray(), [
+            [1.0, 0.0], 
+            [0.0, 1.0]
+        ])
+        self.assertEqual(t3.asArray(), [
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0]
+        ])
+
 
 
 

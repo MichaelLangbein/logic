@@ -79,13 +79,12 @@ class Tensor:
         return Tensor.package(arr, dims)
 
     def eye(*dims):
-        arr = []
-        for d, dim in enumerate(dims):
-            for i in range(dim):
-                if i == d:
-                    arr.append(1.0)
-                else:
-                    arr.append(0.0)
+        arr = [0.0] * product(dims)
+        i = 0
+        for j, d in enumerate(dims):
+            arr[i] = 1.0
+            i += d + j
+
         if len(dims) == 1:
             return Tensor(arr)
         return Tensor.package(arr, dims)
