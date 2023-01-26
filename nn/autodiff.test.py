@@ -1,6 +1,6 @@
 import unittest as ut
 import numpy as np
-from tensor import Tensor
+from tensor import Tensor, eye
 from autodiff import Add, Exp, InnerSum, Mult, PwProd, PwDiv, Variable, ScalarMult, Sigmoid, Softmax, SSE, ScalarPower
 
 
@@ -50,7 +50,7 @@ class AutodiffTests(ut.TestCase):
         """
         u = Variable(Tensor([1, 2, 3]))
         dudu = u.diff(u)
-        self.assertClose(dudu, np.eye(3))
+        self.assertEqual(dudu.asArray(), eye(3, 3))
 
     def testSum(self):
         """
@@ -64,9 +64,9 @@ class AutodiffTests(ut.TestCase):
         sVal = s.eval()
         dSdu = s.diff(u)
         dSdv = s.diff(v)
-        self.assertClose(sVal, Tensor([3, 5, 7]))
-        self.assertClose(dSdu, np.eye(3))
-        self.assertClose(dSdv, np.eye(3))
+        self.assertClose(sVal.asArray(), [3, 5, 7])
+        self.assertClose(dSdu.asArray(), eye(3, 3))
+        self.assertClose(dSdv.asArray(), eye(3, 3))
 
     def testInnerSum(self):
         """

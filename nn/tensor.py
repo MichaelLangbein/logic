@@ -9,6 +9,24 @@ def product(arr):
     for x in arr: i*= x
     return i
 
+def allEqual(data):
+    for entry in data:
+        if entry != data[0]:
+            return False
+    return True
+
+def eye(Dims, Inds = []):
+    if len(Dims) == 0:
+        if allEqual(Inds):
+            return 1
+        else:
+            return 0
+    data = []
+    for r in range(Dims[0]):
+        row = eye(Dims[1:], Inds + [r])
+        data.append(row)
+    return data
+
 
 class Tensor:
     def __init__(self, arr=[]):
@@ -79,15 +97,7 @@ class Tensor:
         return Tensor.package(arr, dims)
 
     def eye(*dims):
-        arr = [0.0] * product(dims)
-        i = 0
-        for j, d in enumerate(dims):
-            arr[i] = 1.0
-            i += d + j
-
-        if len(dims) == 1:
-            return Tensor(arr)
-        return Tensor.package(arr, dims)
+        return Tensor(eye(dims))
 
     def rand(*dims):
         arr = []
