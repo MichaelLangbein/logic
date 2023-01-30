@@ -34,7 +34,14 @@ class AutodiffTests(ut.TestCase):
             return False
         return True
 
+    def _tensorsClose(self, v1, v2, threshold = 0.001):
+        a1 = v1.asArray()
+        a2 = v2.asArray()
+        return self._arraysClose(a1, a2, threshold)
+
     def assertClose(self, v1, v2, threshold = 0.001):
+        if type(v1) == Tensor:
+            return self.assertTrue(self._tensorsClose(v1, v2, threshold))
         if hasattr(v1, "__len__"):
             return self.assertTrue(self._arraysClose(v1, v2, threshold))
         return self.assertTrue(self._valuesClose(v1, v2, threshold))

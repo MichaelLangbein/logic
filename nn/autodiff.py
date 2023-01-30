@@ -127,7 +127,7 @@ class Mult(Node):
         return f"Mult({self.n1.id()}, {self.n2.id()})"
 
     def eval(self):
-        return self.n1.eval() * self.n2.eval()
+        return self.n1.eval() @ self.n2.eval()
 
     def diff(self, var: Node):
         if self == var:
@@ -137,7 +137,7 @@ class Mult(Node):
         n2 = self.n2.eval()
         d_n1 = self.n1.diff(var)
         d_n2 = self.n2.diff(var)
-        return (d_n1 * n2) + (n1 * d_n2)
+        return (d_n1 @ n2) + (n1 @ d_n2)
 
     def __str__(self) -> str:
         return f"{self.n1} * {self.n2}"
