@@ -12,14 +12,19 @@ class AutodiffTests(ut.TestCase):
     def setUp(self):
         return super().setUp()
 
-    def _arraysClose(self, arr1: np.array, arr2: np.array, threshold = 0.001):
-        if arr1.shape != arr2.shape:
-            print("Dimensions don't match", arr1.shape, arr2.shape)
-            return False
-        diff = np.max(np.abs(arr1 - arr2))
-        if diff >= threshold:
-            print("values unequal: ", arr1, arr2)
-            return False
+    def _arraysClose(self, arr1, arr2, threshold = 0.001):
+        for i in range(len(arr2)):
+            row1 = arr1[i]
+            row2 = arr2[i]
+            if hasattr(row1, "__len__"):
+                close = self._arraysClose(row1, row2, threshold)
+                if not close:
+                    return False
+            else:
+                diff = abs(row2 - row1)
+                if diff > threshold:
+                    print("values unequal: ", arr1, arr2)
+                    return False
         return True
 
     def _valuesClose(self, v1, v2, threshold = 0.001):
@@ -36,13 +41,13 @@ class AutodiffTests(ut.TestCase):
 
     
     def testAssertClose(self):
-        return self.assertClose(np.array([
+        return self.assertClose([
             [1, 2],
             [2, 1]
-        ]), np.array([
+        ], [
             [1, 2],
             [2, 1]
-        ]))
+        ])
 
     def testDiffBySelf(self):
         """
@@ -50,7 +55,7 @@ class AutodiffTests(ut.TestCase):
         """
         u = Variable(Tensor([1, 2, 3]))
         dudu = u.diff(u)
-        self.assertEqual(dudu.asArray(), eye(3, 3))
+        self.assertEqual(dudu.asArray(), eye((3, 3)))
 
     def testSum(self):
         """
@@ -65,8 +70,8 @@ class AutodiffTests(ut.TestCase):
         dSdu = s.diff(u)
         dSdv = s.diff(v)
         self.assertClose(sVal.asArray(), [3, 5, 7])
-        self.assertClose(dSdu.asArray(), eye(3, 3))
-        self.assertClose(dSdv.asArray(), eye(3, 3))
+        self.assertClose(dSdu.asArray(), eye((3, 3)))
+        self.assertClose(dSdv.asArray(), eye((3, 3)))
 
     def testInnerSum(self):
         """
@@ -103,7 +108,7 @@ class AutodiffTests(ut.TestCase):
     
     def testMatrixVectorMult(self):
         v = Variable(Tensor([1., 2.]))
-        M = Variable(Tensor([1., 2.], [2., 1.]))
+        M = Variable(Tensor([[1., 2.], [2., 1.]]))
         p = Mult(M, v)
         pVal = p.eval()
         pDifV = p.diff(v)
@@ -123,20 +128,20 @@ class AutodiffTests(ut.TestCase):
         u = Variable(Tensor([1, 2, 3]))
         e = Exp(u)
         dedu = e.diff(u)
-        self.assertClose(dedu, Tensor(
+        self.assertClose(dedu.asArray(),[
             [np.exp(1), 0, 0],
             [0, np.exp(2), 0],
             [0, 0, np.exp(3)],
-        ))
+        ])
 
         v = Variable(Tensor([2, 3, 4]))
         e2 = Exp(Add(u, v))
         de2dv = e2.diff(v)
-        self.assertClose(de2dv, Tensor(
+        self.assertClose(de2dv.asArray(), [
             [np.exp(1 + 2), 0, 0],
             [0, np.exp(2 + 3), 0],
             [0, 0, np.exp(3 + 4)],
-        ))
+        ])
     
     def testProd(self):
         """
@@ -149,11 +154,11 @@ class AutodiffTests(ut.TestCase):
         v = Variable(Tensor([2, 3, 4]))
         p = PwProd(u, v)
         dpdu = p.diff(u)
-        self.assertClose(dpdu, Tensor(
+        self.assertClose(dpdu.asArray(), [
             [2, 0, 0],
             [0, 3, 0],
             [0, 0, 4]
-        ))
+        ])
 
 
         """
@@ -166,28 +171,28 @@ class AutodiffTests(ut.TestCase):
         s = Add(u, v)
         p2 = PwProd(s, v)
         dp2du = p2.diff(u)
-        self.assertClose(dp2du, Tensor(
+        self.assertClose(dp2du.asArray(), [
             [2, 0, 0],
             [0, 3, 0],
             [0, 0, 4]
-        ))
+        ])
 
     def testPwDiv(self):
         u = Variable(Tensor([1, 2, 3]))
         v = Variable(Tensor([2, 3, 4]))
         d = PwDiv(u, v)
         dddu = d.diff(u)
-        self.assertClose(dddu, Tensor(
+        self.assertClose(dddu.asArray(), [
             [1/2, 0, 0],
             [0, 1/3, 0],
             [0, 0, 1/4]
-        ))
+        ])
         dddv = d.diff(v)
-        self.assertClose(dddv, Tensor(
+        self.assertClose(dddv.asArray(), [
             [-1/(2**2), 0, 0],
             [0, -2/(3**2), 0],
             [0, 0, -3/(4**2)]
-        ))
+        ])
 
 
     def testScalarPow(self):

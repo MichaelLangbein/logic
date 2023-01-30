@@ -50,11 +50,11 @@ class Variable(Node):
         return self.value
 
     def diff(self, variable: Node):
+        derivativeDims = self.value.dimensions + self.value.dimensions
         if self == variable:
-            derivativeDims = self.value.dimensions + self.value.dimensions
             return Tensor.eye(*derivativeDims)
         else:
-            return 0
+            return Tensor.zeros(*derivativeDims)
 
     def __str__(self) -> str:
         return f"{self.value}"
@@ -195,7 +195,7 @@ class Exp(Node):
         return f"Exp({self.n.id()})"
 
     def eval(self):
-        return np.exp(self.n.eval())
+        return Tensor(np.exp(self.n.eval()))
 
     def diff(self, var: Node):
         if self == var:
