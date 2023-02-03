@@ -115,13 +115,13 @@ class AutodiffTests(ut.TestCase):
     
     def testMatrixVectorMult(self):
         v = Variable(Tensor([1., 2.]))
-        M = Variable(Tensor([[1., 2.], [2., 1.]]))
+        M = Variable(Tensor([[1., 2.], [3., 4.]]))
         p = Mult(M, v)
         pVal = p.eval()
         pDifV = p.diff(v)
         pDifM = p.diff(M)
 
-        pExpected = Tensor([5, 4])
+        pExpected = Tensor([5, 11])
         self.assertClose(pVal, pExpected)
         self.assertClose(pDifV, M.value)
         self.assertClose(pDifM, v.value)
