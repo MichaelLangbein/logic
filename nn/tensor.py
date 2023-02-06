@@ -149,10 +149,10 @@ class Tensor:
 
 
     def __add__(self, other):
-        if type(self) == TensorNull:
-            return Tensor(other.asArray())
-        if type(other) == TensorNull:
-            return Tensor(self.asArray())
+        # if type(self) == TensorNull:
+        #     return Tensor(other.asArray())
+        # if type(other) == TensorNull:
+        #     return Tensor(self.asArray())
 
         newarr = []
 
@@ -265,12 +265,12 @@ class Tensor:
         return f"Tensor {baseStr} {baseRepr}"
 
     def matmul(self, other):
-        if type(self) == TensorNull or type(other) == TensorNull:
-            return TensorNull()
-        if type(self) == TensorOne:
-            return Tensor(other.asArray())
-        if type(other) == TensorOne:
-            return Tensor(self.asArray())
+        # if type(self) == TensorNull or type(other) == TensorNull:
+        #     return TensorNull()
+        # if type(self) == TensorOne:
+        #     return Tensor(other.asArray())
+        # if type(other) == TensorOne:
+        #     return Tensor(self.asArray())
 
         # If both arguments are 2-D they are multiplied like conventional matrices.
         # If either argument is N-D, N > 2, it is treated as a stack of matrices residing in the last two indexes and broadcast accordingly.
@@ -325,10 +325,10 @@ class Tensor:
         return self.matmul(other)
 
 
-class TensorNull(Tensor):
-    def __init__(self):
-        super().__init__([])
+# class TensorNull(Tensor):
+#     def __init__(self):
+#         super().__init__([])
 
-class TensorOne(Tensor):
-    def __init__(self):
-        super().__init__([1])
+# class TensorOne(Tensor):
+#     def __init__(self):
+#         super().__init__([1])
