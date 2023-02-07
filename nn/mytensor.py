@@ -5,9 +5,16 @@ import unittest as ut
 
 class Tensor():
     def __init__(self, data):
-        pass
+        if isinstance(data, Tensor):
+            data = data.value()
+        if not hasattr(data, "__len__"):
+            self._data = data
+        else:
+            self._data = []
+            for entry in data:
+                self._data.append(Tensor(entry))
 
-    def __add__(self, other: Tensor):
+    def __add__(self, other):
         assert(self.shape() == other.shape())
         
         if self.isScalar() and other.isScalar():
@@ -25,33 +32,31 @@ class Tensor():
                 sum[i] = entry + other
 
         else:
-            sum = Tensor.zeros(self.shape)
+            sum = Tensor.zeros(self.shape())
             for r, row in enumerate(self):
                 for c, col in enumerate(other):
                     sum[r][c] = row + col
             return sum
 
     def __len__(self):
-        pass
+        return len(self._data)
 
     def __getitem__(self, index):
-        pass
+        return self._data[index]
 
-    def __mult__(self, other: Tensor):
+    def __setitem__(self, index, value):
+        assert(isinstance(value, Tensor))
+        self._data[index] = value
+
+    def __mul__(self, other):
         if self.isScalar() and other.isScalar():
             return Tensor(self.value() * other.value())
 
         if self.isScalar() and not other.isScalar():
-            sum = Tensor.zeros(other.shape())
-            for entry in other:
-                sum += self * entry
-            return sum
-
-        if not self.isScalar() and other.isScalar():
-            sum = Tensor.zeros(self.shape())
-            for entry in self:
-                sum += entry * other
-            return sum
+            out = Tensor.zeros(other.shape())
+            for i, entry in enumerate(other):
+                out[i] = self * entry
+            return out
 
         else:
             ownShape = self.shape()
@@ -59,29 +64,37 @@ class Tensor():
             assert(ownShape[-1] == otherShape[0])
             newShape = ownShape[:-1] + otherShape[1:]
             out = Tensor.zeros(newShape)
-            for r, row in enumerate(self):
-                for c, col in enumerate(other):
-                    sum = row * col
-                    out[r][c] = sum
+            for i, entry in enumerate(self):
+                out[i] = entry * other
             return out
 
     def shape(self):
-        pass
+        if not hasattr(self._data, "__len__"):
+            return []
+        shp = [len(self)]
+        if len(self) > 0:
+            shp += self[0].shape()
+        return shp
 
     def value(self):
         if self.isScalar():
-            return self.data
+            return self._data
         else:
             data = []
-            for entry in self.data:
+            for entry in self._data:
                 data.append(entry.value())
             return data
 
     def isScalar(self):
-        return self.shape() == ()
+        return self.shape() == []
 
     def zeros(shape):
-        pass
+        if len(shape) == 0:
+            return Tensor(0)
+        else:
+            data = [Tensor.zeros(shape[1:]) for i in range(shape[0])]
+            return Tensor(data)
+
             
 
 
@@ -99,22 +112,22 @@ class TensorTests(ut.TestCase):
     def testScalarVectorAdd(self):
         a = Tensor(2)
         b = Tensor([1, 2])
-        self.assertRaises(Exception, a + b)
+        self.assertRaises(AssertionError, lambda : a + b)
 
     def testVectorScalarAdd(self):
         a = Tensor(2)
         b = Tensor([1, 2])
-        self.assertRaises(Exception, b + a)
+        self.assertRaises(AssertionError, lambda : b + a)
 
     def testScalarMatrixAdd(self):
         a = Tensor(2)
         b = Tensor([[1, 2], [3, 4]])
-        self.assertRaises(Exception, a + b)
+        self.assertRaises(AssertionError, lambda : a + b)
 
     def testMatrixScalarAdd(self):
         a = Tensor(2)
         b = Tensor([[1, 2], [3, 4]])
-        self.assertRaises(Exception, b + a)
+        self.assertRaises(AssertionError, lambda : b + a)
 
     def testVectorVectorAdd(self):
         a = Tensor([1, 2, 3])
@@ -125,12 +138,12 @@ class TensorTests(ut.TestCase):
     def testMatrixVectorAdd(self):
         a = Tensor([[1, 2], [3, 4]])
         b = Tensor([1, 2])
-        self.assertRaises(Exception, a + b)
+        self.assertRaises(AssertionError, lambda : a + b)
 
     def testVectorMatrixAdd(self):
         a = Tensor([[1, 2], [3, 4]])
         b = Tensor([1, 2])
-        self.assertRaises(Exception, b + a)
+        self.assertRaises(AssertionError, lambda : b + a)
 
     def testMatrixMatrixAdd(self):
         a = Tensor([[1, 2], [3, 4]])
@@ -191,6 +204,14 @@ class TensorTests(ut.TestCase):
         b = Tensor([[2, 3], [4, 5]])
         c = a * b
         self.assertEqual(c.value(), [[10, 13], [22, 29]])
+
+    def testHigherDimMult(self):
+        a = Tensor([[[1, 2], [3, 4]], [[2, 3], [4, 5]]])
+        self.assertEqual(a.shape(), [2, 2, 2])
+        b = Tensor([[1, 2], [3, 4]])
+        self.assertEqual(b.shape(), [2, 2])
+        c = a * b
+        self.assertEqual(c.shape(), [2, 2, 2])
 
 
 
