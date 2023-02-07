@@ -33,14 +33,3 @@ export abstract class InnerProductSpace<Vector> extends VectorSpace<Vector> {
         return theta;
     }
 }
-
-
-export abstract class OuterProductSpace<Tensor> extends VectorSpace<Tensor> {
-    /** outer product */
-    abstract opr(a: Tensor, b: Tensor): Tensor
-}
-
-// export abstract class MatrixSpace extends OuterProductSpace {
-//     /** outer product */
-//     abstract opr(a: Vector, b: Vector): Matrix
-// }

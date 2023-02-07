@@ -117,3 +117,37 @@ for (const name in ips) {
 
     });
 }
+
+
+export type LinearMap<VectorA, VectorB> = (a: VectorA) => VectorB;
+
+type LinMapStruct<S, D> = {
+    sourceVectorSpace: VectorSpace<S>,
+    destinationVectorSpace: VectorSpace<D>,
+    linMap: LinearMap<S, D>
+}
+
+const lmps: {[key: string]: LinMapStruct<any, any>} = {
+};
+
+for (const key in lmps) {
+    const {sourceVectorSpace: s, destinationVectorSpace: d, linMap} = lmps[key];
+    describe(`Testing that ${key} is a linear map`, () => {
+        
+        it(`Preserves addition`, () => {
+            const a = s.random();
+            const b = s.random();
+            const f_ab = linMap(s.add(a, b));
+            const fa_fb = d.add(linMap(a), linMap(b));
+            expect(d.equals(f_ab, fa_fb));
+        });
+
+        it(`Preserves scalar-product`, () => {
+            const a = s.random();
+            const alpha = Math.random();
+            const f_alpha_a = linMap(s.sp(alpha, a));
+            const alpha_fa = d.sp(alpha, linMap(a));
+            expect(d.equals(f_alpha_a, alpha_fa));
+        });
+    }); 
+}
