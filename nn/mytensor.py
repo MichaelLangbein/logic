@@ -15,8 +15,6 @@ class Tensor():
                 self._data.append(Tensor(entry))
 
     def __add__(self, other):
-        assert(self.shape() == other.shape())
-        
         if self.isScalar() and other.isScalar():
             return Tensor(self.value() + other.value())
 
@@ -26,17 +24,11 @@ class Tensor():
                 sum[i] = self + entry
             return sum
 
-        if not self.isScalar() and other.isScalar():
-            sum = Tensor.zeros(self.shape())
-            for i, entry in enumerate(self):
-                sum[i] = entry + other
-
         else:
-            sum = Tensor.zeros(self.shape())
+            out = Tensor.zeros(self.shape())
             for r, row in enumerate(self):
-                for c, col in enumerate(other):
-                    sum[r][c] = row + col
-            return sum
+                out[r] = row + other
+            return out
 
     def __len__(self):
         return len(self._data)
@@ -49,6 +41,26 @@ class Tensor():
         self._data[index] = value
 
     def __mul__(self, other):
+        shapeSelf = self.shape()
+        shapeOther = other.shape()
+        if len(shapeSelf) == 0:
+            return Tensor.__scalarMult(self, other)
+        if len(shapeSelf) == 1:
+            return Tensor.__innerProd(self, other)
+
+        out = Tensor.zeros([shapeSelf[0], shapeOther[0]])
+        for r, row in enumerate(self):
+            for c, col in enumerate(other):
+                out[r][c] = row * col
+        return out
+
+    def __scalarMult(scalar, other):
+        pass
+
+    def __innerProd(a, b):
+        pass
+
+    def __matmul__(self, other):
         if self.isScalar() and other.isScalar():
             return Tensor(self.value() * other.value())
 
@@ -59,11 +71,7 @@ class Tensor():
             return out
 
         else:
-            ownShape = self.shape()
-            otherShape = other.shape()
-            assert(ownShape[-1] == otherShape[0])
-            newShape = ownShape[:-1] + otherShape[1:]
-            out = Tensor.zeros(newShape)
+            out = Tensor.zeros([len(self)])
             for i, entry in enumerate(self):
                 out[i] = entry * other
             return out
