@@ -1,6 +1,7 @@
 import unittest as ut
 
 # https://math.stackexchange.com/questions/409460/multiplying-3d-matrix
+# I'm done with this. Just use numpy @
 
 
 class Tensor():

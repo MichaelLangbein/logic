@@ -50,7 +50,7 @@ class Variable(Node):
         return self.value
 
     def diff(self, variable: Node):
-        derivativeDims = self.value.dimensions + self.value.dimensions
+        derivativeDims = self.value.dimensions() + self.value.dimensions()
         if self == variable:
             return Tensor.eye(*derivativeDims)
         else:
