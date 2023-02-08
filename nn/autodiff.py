@@ -138,6 +138,7 @@ class Minus(Node):
 
 class Mult(Node):
     # https://math.stackexchange.com/questions/1866757/not-understanding-derivative-of-a-matrix-matrix-product
+    # https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
     def __init__(self, n1: Node, n2: Node):
         self.n1 = n1
         self.n2 = n2
