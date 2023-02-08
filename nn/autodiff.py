@@ -1,7 +1,7 @@
 #%%
 import numpy as np
 
-from helpers import eye, isZero, zeros
+from helpers import eye, isZero, matMul, zeros
 
 
 # Derivatives on tensors: https://www.et.byu.edu/~vps/ME505/AAEM/V5-07.pdf
@@ -137,6 +137,7 @@ class Minus(Node):
 
 
 class Mult(Node):
+    # https://math.stackexchange.com/questions/1866757/not-understanding-derivative-of-a-matrix-matrix-product
     def __init__(self, n1: Node, n2: Node):
         self.n1 = n1
         self.n2 = n2
@@ -158,10 +159,10 @@ class Mult(Node):
         d_n2 = self.n2.diff(var)
         # Two special cases. Needed because they make sure that matrix dimensions fit.
         if isZero(d_n1):
-            return n1.transpose() @ d_n2
+            return matMul(n1.transpose(), d_n2)
         if isZero(d_n2):
-            return d_n1 @ n2.transpose()
-        return (d_n1 @ n2.transpose()) + (n1.transpose() @ d_n2)
+            return matMul(d_n1, n2.transpose())
+        return matMul(d_n1, n2.transpose()) + matMul(n1.transpose(), d_n2)
 
     def __str__(self) -> str:
         return f"{self.n1} * {self.n2}"

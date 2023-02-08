@@ -27,3 +27,11 @@ def isZero(something):
     if np.min(something) == 0.0 and np.max(something) == 0.0:
         return True
     return False
+
+
+def matMul(a, b):
+    if a.shape == (1,):
+        return a[0] * b
+    if b.shape == (1,):
+        return a * b[0]
+    return a @ b

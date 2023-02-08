@@ -1,5 +1,6 @@
 import numpy as np
 from autodiff import Node, Variable, Mult, Sigmoid, SSE
+from helpers import matMul
 
 
 """
@@ -51,8 +52,9 @@ class FullyConnectedLayer(Layer):
                 dxl/dWl = yl-1
         delta Wl = - alpha dE/dWl
         """
-        dx_dW = self.i.eval()
-        self.W.value -= 0.01 * dE_dx @ dx_dW
+        dx_dW = self.i.eval().transpose()
+        dE_dW = matMul(dE_dx, dx_dW)
+        self.W.value -= 0.01 * dE_dW
 
 
 class ConvolutionalLayer(Layer):
