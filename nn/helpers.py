@@ -34,7 +34,10 @@ def matMul(a, b):
         return a[0] * b
     if b.shape == (1,):
         return a * b[0]
-    return a @ b
+    try:
+        return a @ b
+    except:
+        print("Error")
 
 
 def permutations(ranges):
@@ -51,6 +54,8 @@ def permutations(ranges):
 
 
 def diffBySelf(shape):
+    if shape == ():
+        return np.array(1)
     newShape = shape + shape
     out = np.zeros(newShape)
     for indices in permutations(shape):
