@@ -1,7 +1,7 @@
 #%%
 import numpy as np
 
-from helpers import eye, isZero, matMul, zeros
+from helpers import diffBySelf, eye, isZero, matMul, zeros
 
 
 # Derivatives on tensors: https://www.et.byu.edu/~vps/ME505/AAEM/V5-07.pdf
@@ -66,9 +66,10 @@ class Variable(Node):
 
     def diff(self, variable: Node):
         v = self.eval()
-        derivativeDims = v.shape + v.shape
+        o = variable.eval()
+        derivativeDims = v.shape + o.shape
         if self == variable:
-            return np.array(eye(derivativeDims))
+            return diffBySelf(v.shape)
         else:
             return zeros(*derivativeDims)
 
@@ -106,8 +107,7 @@ class Add(Node):
     def diff(self, var: Node):
         if self == var:
             v = self.eval()
-            derivativeDims = v.shape + v.shape
-            return np.array(eye(derivativeDims))
+            return diffBySelf(v.shape)
         return self.n1.diff(var) + self.n2.diff(var)
 
     def __str__(self) -> str:
@@ -128,8 +128,7 @@ class Minus(Node):
     def diff(self, var: Node):
         if self == var:
             v = self.eval()
-            derivativeDims = v.shape + v.shape
-            return np.array(eye(derivativeDims))
+            return diffBySelf(v.shape)
         return self.n1.diff(var) - self.n2.diff(var)
 
     def __str__(self) -> str:
@@ -152,8 +151,7 @@ class Mult(Node):
     def diff(self, var: Node):
         if self == var:
             v = self.eval()
-            derivativeDims = v.shape + v.shape
-            return np.array(eye(derivativeDims))
+            return diffBySelf(v.shape)
         n1 = self.n1.eval()
         n2 = self.n2.eval()
         d_n1 = self.n1.diff(var)
@@ -183,8 +181,7 @@ class Inv(Node):
         """ https://math.stackexchange.com/questions/1471825/derivative-of-the-inverse-of-a-matrix """
         if self == var:
             v = self.eval()
-            derivativeDims = v.shape + v.shape
-            return np.array(eye(derivativeDims))
+            return diffBySelf(v.shape)
         nV = self.n.eval()
         nD = self.n.diff(var)
         nI = np.invert(nV)
@@ -207,8 +204,7 @@ class Div(Node):
     def diff(self, var: Node):
         if self == var:
             v = self.eval()
-            derivativeDims = v.shape + v.shape
-            return np.array(eye(derivativeDims))
+            return diffBySelf(v.shape)
         return self.n.diff(var)
 
     def __str__(self) -> str:
@@ -228,8 +224,7 @@ class Exp(Node):
     def diff(self, var: Node):
         if self == var:
             v = self.eval()
-            derivativeDims = v.shape + v.shape
-            return np.array(eye(derivativeDims))
+            return diffBySelf(v.shape)
         nD = self.n.diff(var)
         eV = self.eval()
         return nD * eV
@@ -251,8 +246,7 @@ class Ln(Node):
     def diff(self, var: Node):
         if self == var:
             v = self.eval()
-            derivativeDims = v.shape + v.shape
-            return np.array(eye(derivativeDims))
+            return diffBySelf(v.shape)
         u = self.u.eval()
         uD = self.u.diff(var)
         ddu_lnu = np.diag(1 / u)
@@ -281,8 +275,7 @@ class PwDiv(Node):
     def diff(self, variable: Variable):
         if self == variable:
             v = self.eval()
-            derivativeDims = v.shape + v.shape
-            return np.array(eye(derivativeDims))
+            return diffBySelf(v.shape)
         a = self.a.eval()
         b = self.b.eval()
         da = self.a.diff(variable)
@@ -313,8 +306,7 @@ class PwProd:
     def diff(self, variable: Variable):
         if self == variable:
             v = self.eval()
-            derivativeDims = v.shape + v.shape
-            return np.array(eye(derivativeDims))
+            return diffBySelf(v.shape)
         """
             d/dx uv = (du/dx)^T v  +  (dv/dx)^T u
             d/du uv = (du/du)^T v
@@ -349,8 +341,7 @@ class ScalarMult(Node):
     def diff(self, variable: Variable):
         if self == variable:
             v = self.eval()
-            derivativeDims = v.shape + v.shape
-            return np.array(eye(derivativeDims))
+            return diffBySelf(v.shape)
         diffVal = self.node.diff(variable)
         return self.scalar * diffVal
 
@@ -372,8 +363,7 @@ class InnerSum(Node):
     def diff(self, variable: Variable):
         if self == variable:
             v = self.eval()
-            derivativeDims = v.shape + v.shape
-            return np.array(eye(derivativeDims))
+            return diffBySelf(v.shape)
         """
             d/dx sum(u) = [d/dx1 sum(u), d/dx2 sum(u), ...]
                         = col_sum(du/dx)
@@ -419,8 +409,7 @@ class ScalarPower(Node):
     def diff(self, x: Node):
         if self == x:
             v = self.eval()
-            derivativeDims = v.shape + v.shape
-            return np.array(eye(derivativeDims))
+            return diffBySelf(v.shape)
         """
             d/dx a^s = s a^(s-1) da/dx
 

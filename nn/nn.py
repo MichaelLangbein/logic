@@ -51,23 +51,7 @@ class FullyConnectedLayer(Layer):
         dE/dWl = dE/dxl dxl/dWl 
         delta Wl = - alpha dE/dWl
         """
-        def lineEye(v, D, R, C):
-            out = []
-            for d in range(D):
-                dim = []
-                for r in range(R):
-                    row = []
-                    for c in range(C):
-                        if d == r:
-                            row.append(v[c])
-                        else:
-                            row.append(0)
-                    dim.append(row)
-                out.append(dim)
-            return np.array(out)
-        i = self.i.eval()
-        W = self.W.eval()
-        dx_dW = lineEye(i, dE_dx.shape[-1], W.shape[0], W.shape[1])
+        dx_dW = self.x().diff(self.W)
         dE_dW = matMul(dE_dx, dx_dW)
         self.W.value -= 0.01 * dE_dW
 

@@ -35,3 +35,28 @@ def matMul(a, b):
     if b.shape == (1,):
         return a * b[0]
     return a @ b
+
+
+def permutations(ranges):
+    if len(ranges) == 0:
+        return []
+    if len(ranges) == 1:
+        return [[i] for i in range(ranges[0])]
+    subResults = permutations(ranges[1:])
+    result = []
+    for i in range(ranges[0]):
+        for p in subResults:
+            result.append([i] + p)
+    return result
+
+
+def diffBySelf(shape):
+    newShape = shape + shape
+    out = np.zeros(newShape)
+    for indices in permutations(shape):
+        out[*indices][*indices] = 1
+    return out
+
+
+
+permutations([2, 3])
