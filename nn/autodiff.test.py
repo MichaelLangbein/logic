@@ -114,7 +114,7 @@ class AutodiffTests(ut.TestCase):
     def testMatrixVectorMult(self):
         """
         p = Mv
-        dp/dv = M^T
+        dp/dv = M
         dp/dM: (2x2x2)
         """
         v = Variable(np.array([1., 2.]))
@@ -126,7 +126,7 @@ class AutodiffTests(ut.TestCase):
 
         pExpected = np.array([5, 11])
         self.assertClose(pVal, pExpected)
-        self.assertClose(pDifV, M.value.transpose())
+        self.assertClose(pDifV, M.value)
         self.assertClose(pDifM.shape, [2, 2, 2])
 
     def testExp(self):

@@ -49,10 +49,25 @@ class FullyConnectedLayer(Layer):
     def updateParas(self, dE_dx):
         """
         dE/dWl = dE/dxl dxl/dWl 
-                dxl/dWl = yl-1
         delta Wl = - alpha dE/dWl
         """
-        dx_dW = self.i.eval().transpose()
+        def lineEye(v, D, R, C):
+            out = []
+            for d in range(D):
+                dim = []
+                for r in range(R):
+                    row = []
+                    for c in range(C):
+                        if d == r:
+                            row.append(v[c])
+                        else:
+                            row.append(0)
+                    dim.append(row)
+                out.append(dim)
+            return np.array(out)
+        i = self.i.eval()
+        W = self.W.eval()
+        dx_dW = lineEye(i, dE_dx.shape[-1], W.shape[0], W.shape[1])
         dE_dW = matMul(dE_dx, dx_dW)
         self.W.value -= 0.01 * dE_dW
 

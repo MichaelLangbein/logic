@@ -159,10 +159,10 @@ class Mult(Node):
         d_n2 = self.n2.diff(var)
         # Two special cases. Needed because they make sure that matrix dimensions fit.
         if isZero(d_n1):
-            return matMul(n1.transpose(), d_n2)
+            return matMul(n1, d_n2)
         if isZero(d_n2):
-            return matMul(d_n1, n2.transpose())
-        return matMul(d_n1, n2.transpose()) + matMul(n1.transpose(), d_n2)
+            return matMul(d_n1, n2)
+        return matMul(d_n1, n2) + matMul(n1, d_n2)
 
     def __str__(self) -> str:
         return f"{self.n1} * {self.n2}"
