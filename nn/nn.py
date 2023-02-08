@@ -1,5 +1,5 @@
 import numpy as np
-from autodiff import Node, Variable, Mult, Sigmoid, SSE, matMul
+from autodiff import Node, Variable, Mult, Sigmoid, SSE
 
 
 """
@@ -52,7 +52,7 @@ class FullyConnectedLayer(Layer):
         delta Wl = - alpha dE/dWl
         """
         dx_dW = self.i.eval()
-        self.W.value -= 0.01 * matMul(dE_dx, dx_dW)
+        self.W.value -= 0.01 * dE_dx @ dx_dW
 
 
 class ConvolutionalLayer(Layer):
@@ -102,7 +102,7 @@ class NN:
 
             dE_dx_lp1 = dE_dx_l
             dx_lp1_dx_l = nextLayer.x().diff(layer.x())
-            dE_dx_l = matMul(dE_dx_lp1, dx_lp1_dx_l)
+            dE_dx_l = dE_dx_lp1 @ dx_lp1_dx_l
 
             layer.updateParas(dE_dx_l)
 
@@ -126,7 +126,7 @@ class NN:
 
                 dE_dx_lp1   = dE_dx_l
                 dx_lp1_dx_l = nextLayer.x().diff(layer.x())
-                dE_dx_l     = matMul(dE_dx_lp1, dx_lp1_dx_l)
+                dE_dx_l     = dE_dx_lp1 @ dx_lp1_dx_l
 
                 summed_dE_dx_l[l] += dE_dx_l
         

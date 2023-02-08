@@ -1,10 +1,25 @@
 #%%
 import numpy as np
-from tensor import Tensor
+
+from helpers import eye, isZero, zeros
 
 
 # Derivatives on tensors: https://www.et.byu.edu/~vps/ME505/AAEM/V5-07.pdf
 # https://explained.ai/matrix-calculus/index.html#sec:1.3
+
+"""
+x: dimensions (n)
+y: dimensions(m)
+dy/dx: (m*n)
+
+x: dimensions (n)
+Y: dimensions (u*v)
+xY/dx: (u*v*n)
+
+X: dimensions (n*m)
+Y: dimensions (u*v)
+dY/dX: (u*v*n*m)
+"""
 
 """
 # TODOs
@@ -39,7 +54,7 @@ class Node:
 
 
 class Variable(Node):
-    def __init__(self, value: Tensor):
+    def __init__(self, value):
         self.value = value
         self.__id = f"{np.random.rand()}{np.random.rand()}"
 
@@ -50,11 +65,12 @@ class Variable(Node):
         return self.value
 
     def diff(self, variable: Node):
-        derivativeDims = self.value.dimensions() + self.value.dimensions()
+        v = self.eval()
+        derivativeDims = v.shape + v.shape
         if self == variable:
-            return Tensor.eye(*derivativeDims)
+            return np.array(eye(derivativeDims))
         else:
-            return Tensor.zeros(*derivativeDims)
+            return zeros(*derivativeDims)
 
     def __str__(self) -> str:
         return f"{self.value}"
@@ -89,8 +105,9 @@ class Add(Node):
 
     def diff(self, var: Node):
         if self == var:
-            derivativeDims = self.value.dimensions + self.value.dimensions
-            return Tensor.eye(*derivativeDims)
+            v = self.eval()
+            derivativeDims = v.shape + v.shape
+            return np.array(eye(derivativeDims))
         return self.n1.diff(var) + self.n2.diff(var)
 
     def __str__(self) -> str:
@@ -110,8 +127,9 @@ class Minus(Node):
 
     def diff(self, var: Node):
         if self == var:
-            derivativeDims = self.value.dimensions + self.value.dimensions
-            return Tensor.eye(*derivativeDims)
+            v = self.eval()
+            derivativeDims = v.shape + v.shape
+            return np.array(eye(derivativeDims))
         return self.n1.diff(var) - self.n2.diff(var)
 
     def __str__(self) -> str:
@@ -131,13 +149,19 @@ class Mult(Node):
 
     def diff(self, var: Node):
         if self == var:
-            derivativeDims = self.value.dimensions + self.value.dimensions
-            return Tensor.eye(*derivativeDims)
+            v = self.eval()
+            derivativeDims = v.shape + v.shape
+            return np.array(eye(derivativeDims))
         n1 = self.n1.eval()
         n2 = self.n2.eval()
         d_n1 = self.n1.diff(var)
         d_n2 = self.n2.diff(var)
-        return (d_n1 @ n2) + (n1 @ d_n2)
+        # Two special cases. Needed because they make sure that matrix dimensions fit.
+        if isZero(d_n1):
+            return n1.transpose() @ d_n2
+        if isZero(d_n2):
+            return d_n1 @ n2.transpose()
+        return (d_n1 @ n2.transpose()) + (n1.transpose() @ d_n2)
 
     def __str__(self) -> str:
         return f"{self.n1} * {self.n2}"
@@ -156,8 +180,9 @@ class Inv(Node):
     def diff(self, var):
         """ https://math.stackexchange.com/questions/1471825/derivative-of-the-inverse-of-a-matrix """
         if self == var:
-            derivativeDims = self.value.dimensions + self.value.dimensions
-            return Tensor.eye(*derivativeDims)
+            v = self.eval()
+            derivativeDims = v.shape + v.shape
+            return np.array(eye(derivativeDims))
         nV = self.n.eval()
         nD = self.n.diff(var)
         nI = np.invert(nV)
@@ -179,8 +204,9 @@ class Div(Node):
 
     def diff(self, var: Node):
         if self == var:
-            derivativeDims = self.value.dimensions + self.value.dimensions
-            return Tensor.eye(*derivativeDims)
+            v = self.eval()
+            derivativeDims = v.shape + v.shape
+            return np.array(eye(derivativeDims))
         return self.n.diff(var)
 
     def __str__(self) -> str:
@@ -195,12 +221,13 @@ class Exp(Node):
         return f"Exp({self.n.id()})"
 
     def eval(self):
-        return Tensor(np.exp(self.n.eval()))
+        return np.exp(self.n.eval())
 
     def diff(self, var: Node):
         if self == var:
-            derivativeDims = self.value.dimensions + self.value.dimensions
-            return Tensor.eye(*derivativeDims)
+            v = self.eval()
+            derivativeDims = v.shape + v.shape
+            return np.array(eye(derivativeDims))
         nD = self.n.diff(var)
         eV = self.eval()
         return nD * eV
@@ -221,8 +248,9 @@ class Ln(Node):
 
     def diff(self, var: Node):
         if self == var:
-            derivativeDims = self.value.dimensions + self.value.dimensions
-            return Tensor.eye(*derivativeDims)
+            v = self.eval()
+            derivativeDims = v.shape + v.shape
+            return np.array(eye(derivativeDims))
         u = self.u.eval()
         uD = self.u.diff(var)
         ddu_lnu = np.diag(1 / u)
@@ -246,12 +274,13 @@ class PwDiv(Node):
     def eval(self):
         aV = self.a.eval()
         bV = self.b.eval()
-        return np.divide(aV, bV)
+        return aV / bV
 
     def diff(self, variable: Variable):
         if self == variable:
-            derivativeDims = self.value.dimensions + self.value.dimensions
-            return Tensor.eye(*derivativeDims)
+            v = self.eval()
+            derivativeDims = v.shape + v.shape
+            return np.array(eye(derivativeDims))
         a = self.a.eval()
         b = self.b.eval()
         da = self.a.diff(variable)
@@ -281,8 +310,9 @@ class PwProd:
 
     def diff(self, variable: Variable):
         if self == variable:
-            derivativeDims = self.value.dimensions + self.value.dimensions
-            return Tensor.eye(*derivativeDims)
+            v = self.eval()
+            derivativeDims = v.shape + v.shape
+            return np.array(eye(derivativeDims))
         """
             d/dx uv = (du/dx)^T v  +  (dv/dx)^T u
             d/du uv = (du/du)^T v
@@ -316,8 +346,9 @@ class ScalarMult(Node):
 
     def diff(self, variable: Variable):
         if self == variable:
-            derivativeDims = self.value.dimensions + self.value.dimensions
-            return Tensor.eye(*derivativeDims)
+            v = self.eval()
+            derivativeDims = v.shape + v.shape
+            return np.array(eye(derivativeDims))
         diffVal = self.node.diff(variable)
         return self.scalar * diffVal
 
@@ -338,8 +369,9 @@ class InnerSum(Node):
 
     def diff(self, variable: Variable):
         if self == variable:
-            derivativeDims = self.value.dimensions + self.value.dimensions
-            return Tensor.eye(*derivativeDims)
+            v = self.eval()
+            derivativeDims = v.shape + v.shape
+            return np.array(eye(derivativeDims))
         """
             d/dx sum(u) = [d/dx1 sum(u), d/dx2 sum(u), ...]
                         = col_sum(du/dx)
@@ -384,8 +416,9 @@ class ScalarPower(Node):
 
     def diff(self, x: Node):
         if self == x:
-            derivativeDims = self.value.dimensions + self.value.dimensions
-            return Tensor.eye(*derivativeDims)
+            v = self.eval()
+            derivativeDims = v.shape + v.shape
+            return np.array(eye(derivativeDims))
         """
             d/dx a^s = s a^(s-1) da/dx
 

@@ -1,6 +1,6 @@
 import unittest as ut
 import numpy as np
-from autodiff import SSE, Mult, Sigmoid, Variable, matMul
+from autodiff import SSE, Mult, Sigmoid, Variable
 from nn import FullyConnectedLayer, NN, training, validation
 
 
@@ -92,7 +92,7 @@ class NNTests(ut.TestCase):
 
         # Backprop middle layer
         dx_2_dx_1 = layer2.x().diff(layer1.x())
-        dE_dx_1 = matMul(dE_dx_2, dx_2_dx_1)
+        dE_dx_1 = dE_dx_2 @ dx_2_dx_1
         layer1.updateParas(dE_dx_1)
         #
         self.assertEqual(dE_dx_1.shape, (2,))
@@ -102,7 +102,7 @@ class NNTests(ut.TestCase):
 
         # Backprop first layer
         dx_1_dx_0 = layer1.x().diff(layer0.x())
-        dE_dx_0 = matMul(dE_dx_1, dx_1_dx_0)
+        dE_dx_0 = dE_dx_1 @ dx_1_dx_0
         layer0.updateParas(dE_dx_0)
         #
         self.assertEqual(dE_dx_0.shape, (3,))
