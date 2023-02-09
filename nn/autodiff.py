@@ -156,12 +156,9 @@ class Mult(Node):
         n2 = self.n2.eval()
         d_n1 = self.n1.diff(var)
         d_n2 = self.n2.diff(var)
-        # Two special cases. Needed because they make sure that matrix dimensions fit.
-        if isZero(d_n1):
-            return matMul(n1, d_n2)
-        if isZero(d_n2):
-            return matMul(d_n1, n2)
-        return matMul(d_n1, n2) + matMul(n1, d_n2)
+        p1 = d_n1 @ n2
+        p2 = n1 @ d_n2
+        return p1 + p2
 
     def __str__(self) -> str:
         return f"{self.n1} * {self.n2}"

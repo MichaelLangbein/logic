@@ -1,7 +1,7 @@
 import unittest as ut
 import numpy as np
 from autodiff import Add, Exp, InnerSum, Mult, PwProd, PwDiv, Variable, ScalarMult, Sigmoid, Softmax, SSE, ScalarPower
-from helpers import eye
+from helpers import eye, isZero
 
 
 class AutodiffTests(ut.TestCase):
@@ -336,6 +336,18 @@ class AutodiffTests(ut.TestCase):
         dzdy = z.diff(y2)
         self.assertClose(dzdy, np.array([[1.0]]))
     
+    def testComplicatedDerivatives(self):
+        a = Variable(np.random.rand(2, 3))
+        b = Variable(np.random.rand(3))
+        dadb = a.diff(b)
+        self.assertTrue(isZero(dadb))
+        self.assertEquals(dadb.shape, (2, 3, 3))
+        c = Mult(a, b)
+        self.assertEquals(c.eval().shape, (2,))
+        dcdb = c.diff(b)
+        self.assertEquals(dcdb.shape, (2, 3))
+        dcda = c.diff(a)
+        self.assertEquals(dcda.shape, (2, 2, 3))
 
 
 
