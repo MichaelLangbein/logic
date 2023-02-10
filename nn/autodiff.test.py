@@ -56,11 +56,12 @@ class AutodiffTests(ut.TestCase):
 
     def testDiffBySelf(self):
         """
-            du/du = eye
+            dX/dX |_x0 = eye * x0 = x0
         """
-        u = Variable(np.array([1, 2, 3]))
+        u_value = np.array([1, 2, 3])
+        u = Variable(u_value)
         dudu = u.diff(u)
-        self.assertEqual(dudu.tolist(), eye((3, 3)))
+        self.assertClose(dudu, u_value)
 
     def testSum(self):
         """
@@ -82,19 +83,23 @@ class AutodiffTests(ut.TestCase):
         """
             i = InnerSum(u)
             di/du = 1^T
+            di/du |_x0 = 1^T x0 = i
         """
         u = Variable(np.array([1, 2, 3]))
         i = InnerSum(u)
         iVal = i.eval()
         dIdu = i.diff(u)
         self.assertAlmostEqual(iVal, np.array(6))
-        self.assertClose(dIdu, np.array([1, 1, 1]))
+        self.assertClose(dIdu, iVal)
 
-        v = Variable(np.array([2, 3, 4]))
+        v_val = np.array([2, 3, 4])
+        v = Variable(v_val)
         s = Add(u, v)
         si = InnerSum(s)
+        si_val = si.eval()
+        self.assertClose(si_val, np.array(15))
         dsidv = si.diff(v)
-        self.assertClose(dsidv, np.array([1, 1, 1]))
+        self.assertClose(dsidv, si_val)
 
     def testNestedExpression(self):
         """
@@ -115,7 +120,9 @@ class AutodiffTests(ut.TestCase):
         """
         p = Mv
         dp/dv = M
+        dp/dv |_v0 = Mv0
         dp/dM: (2x2x2)
+        dp/dM |_M0 : (2x2)
         """
         v = Variable(np.array([1., 2.]))
         M = Variable(np.array([[1., 2.], [3., 4.]]))
@@ -126,32 +133,34 @@ class AutodiffTests(ut.TestCase):
 
         pExpected = np.array([5, 11])
         self.assertClose(pVal, pExpected)
-        self.assertClose(pDifV, M.value)
-        self.assertClose(pDifM.shape, [2, 2, 2])
+        self.assertClose(pDifV, pExpected)
+        self.assertClose(pDifM, pExpected)
+        self.assertClose(pDifM.shape, pExpected.shape)
 
     def testExp(self):
         """
             de^u/du = eye(e^ui)
             de^u/dx = de^u/du du/dx
                     = eye(e^ui) du/dx
+            de^u/dx |_x0 = de^u/dx . x0
+
+            d e^u_rc / d x_lm = e^u_rc (d u_rc / d x_lm)
+            d e^u / dx        = e^u   . du / dx
+            d e^u / dx |_x0   =(e^u   . du / dx) @ x0
         """
-        u = Variable(np.array([1, 2, 3]))
+        u_value = np.array([1, 2, 3])
+        u = Variable(u_value)
         e = Exp(u)
         dedu = e.diff(u)
-        self.assertClose(dedu.tolist(),[
-            [np.exp(1), 0, 0],
-            [0, np.exp(2), 0],
-            [0, 0, np.exp(3)],
-        ])
+        dedu_expected = np.array([np.exp(1), np.exp(2), np.exp(3)]) * u_value
+        self.assertClose(dedu, dedu_expected)
 
-        v = Variable(np.array([2, 3, 4]))
+        v_value = np.array([2, 3, 4])
+        v = Variable(v_value)
         e2 = Exp(Add(u, v))
         de2dv = e2.diff(v)
-        self.assertClose(de2dv.tolist(), [
-            [np.exp(1 + 2), 0, 0],
-            [0, np.exp(2 + 3), 0],
-            [0, 0, np.exp(3 + 4)],
-        ])
+        de2dv_expected = np.array([np.exp(1 + 2), np.exp(2 + 3), np.exp(3 + 4)]) * np.array([3, 5, 7])
+        self.assertClose(de2dv, de2dv_expected)
     
     def testProd(self):
         """
@@ -341,13 +350,13 @@ class AutodiffTests(ut.TestCase):
         b = Variable(np.random.rand(3))
         dadb = a.diff(b)
         self.assertTrue(isZero(dadb))
-        self.assertEquals(dadb.shape, (2, 3, 3))
+        self.assertEqual(dadb.shape, (2, 3, 3))
         c = Mult(a, b)
-        self.assertEquals(c.eval().shape, (2,))
+        self.assertEqual(c.eval().shape, (2,))
         dcdb = c.diff(b)
-        self.assertEquals(dcdb.shape, (2, 3))
+        self.assertEqual(dcdb.shape, (2, 3))
         dcda = c.diff(a)
-        self.assertEquals(dcda.shape, (2, 2, 3))
+        self.assertEqual(dcda.shape, (2, 2, 3))
 
 
 

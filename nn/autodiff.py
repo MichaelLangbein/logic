@@ -85,12 +85,10 @@ class Variable(Node):
 
     def diff(self, variable: Node):
         v = self.eval()
-        o = variable.eval()
-        derivativeDims = v.shape + o.shape
         if self == variable:
-            return diffBySelf(v.shape)
+            return v
         else:
-            return zeros(*derivativeDims)
+            return zeros(*v.shape)
 
     def __str__(self) -> str:
         return f"{self.value}"
@@ -126,7 +124,7 @@ class Add(Node):
     def diff(self, var: Node):
         if self == var:
             v = self.eval()
-            return diffBySelf(v.shape)
+            return v
         return self.n1.diff(var) + self.n2.diff(var)
 
     def __str__(self) -> str:
@@ -147,7 +145,7 @@ class Minus(Node):
     def diff(self, var: Node):
         if self == var:
             v = self.eval()
-            return diffBySelf(v.shape)
+            return v
         return self.n1.diff(var) - self.n2.diff(var)
 
     def __str__(self) -> str:
@@ -170,21 +168,18 @@ class Mult(Node):
 
     def diff(self, var: Node):
         """
-         let d_n1n2_v = (AB)'X = A'XB + AB'X
-         (AB)' = d_n1n2_v @ X^-1
+         let d_n1n2 = (AB)'X = A'XB + AB'X
         """
     
         if self == var:
             v = self.eval()
-            return diffBySelf(v.shape)
+            return v
         v = var.eval()
-        v_inv = np.linalg.pinv(v)
         n1 = self.n1.eval()
         n2 = self.n2.eval()
         d_n1 = self.n1.diff(var)
         d_n2 = self.n2.diff(var)
-        d_n1n2_v = d_n1 @ v @ n2 + n1 @ d_n2 @ v
-        d_n1n2 = d_n1n2_v @ v_inv
+        d_n1n2 = d_n1 @ n2 + n1 @ d_n2
         return d_n1n2
 
     def __str__(self) -> str:
@@ -205,7 +200,7 @@ class Inv(Node):
         """ https://math.stackexchange.com/questions/1471825/derivative-of-the-inverse-of-a-matrix """
         if self == var:
             v = self.eval()
-            return diffBySelf(v.shape)
+            return v
         nV = self.n.eval()
         nD = self.n.diff(var)
         nI = np.invert(nV)
@@ -228,7 +223,7 @@ class Div(Node):
     def diff(self, var: Node):
         if self == var:
             v = self.eval()
-            return diffBySelf(v.shape)
+            return v
         return self.n.diff(var)
 
     def __str__(self) -> str:
@@ -248,7 +243,7 @@ class Exp(Node):
     def diff(self, var: Node):
         if self == var:
             v = self.eval()
-            return diffBySelf(v.shape)
+            return v
         nD = self.n.diff(var)
         eV = self.eval()
         return nD * eV
@@ -270,11 +265,11 @@ class Ln(Node):
     def diff(self, var: Node):
         if self == var:
             v = self.eval()
-            return diffBySelf(v.shape)
+            return v
         u = self.u.eval()
+        u_inv = 1.0 / u.T
         uD = self.u.diff(var)
-        ddu_lnu = np.diag(1 / u)
-        return ddu_lnu * uD
+        return u_inv @ uD
 
     def __str__(self) -> str:
         return f"ln({self.u})"
@@ -299,7 +294,7 @@ class PwDiv(Node):
     def diff(self, variable: Variable):
         if self == variable:
             v = self.eval()
-            return diffBySelf(v.shape)
+            return v
         a = self.a.eval()
         b = self.b.eval()
         da = self.a.diff(variable)
@@ -330,7 +325,7 @@ class PwProd:
     def diff(self, variable: Variable):
         if self == variable:
             v = self.eval()
-            return diffBySelf(v.shape)
+            return v
         """
             d/dx uv = (du/dx)^T v  +  (dv/dx)^T u
             d/du uv = (du/du)^T v
@@ -365,7 +360,7 @@ class ScalarMult(Node):
     def diff(self, variable: Variable):
         if self == variable:
             v = self.eval()
-            return diffBySelf(v.shape)
+            return v
         diffVal = self.node.diff(variable)
         return self.scalar * diffVal
 
@@ -387,7 +382,7 @@ class InnerSum(Node):
     def diff(self, variable: Variable):
         if self == variable:
             v = self.eval()
-            return diffBySelf(v.shape)
+            return v
         """
             d/dx sum(u) = [d/dx1 sum(u), d/dx2 sum(u), ...]
                         = col_sum(du/dx)
@@ -397,25 +392,6 @@ class InnerSum(Node):
 
     def __str__(self) -> str:
         return f"innersum({self.node})"
-
-
-# def Pow(Node):
-#     def __init__(self, base: Node, pow: Node):
-#         self.base = base
-#         self.pow = pow
-
-#     def eval(self):
-#         return np.power(self.base.eval(), self.pow.eval())
-
-#     def diff(self, var: Node):
-#         """
-#             a = e^log(a)
-#             a^b = e^(log(a) * b)
-#             d a^b / dx = d/dx e^(log(a) * b)
-#                        = d/dx (log(a) * b) e^(log(a) * b)
-#                        = d/dx (log(a) * b) a^b
-#                        = (a'b/a + log(a)b') * a^b
-#         """
 
 
 class ScalarPower(Node):
@@ -433,7 +409,7 @@ class ScalarPower(Node):
     def diff(self, x: Node):
         if self == x:
             v = self.eval()
-            return diffBySelf(v.shape)
+            return v
         """
             d/dx a^s = s a^(s-1) da/dx
 
@@ -446,33 +422,6 @@ class ScalarPower(Node):
 
     def __str__(self) -> str:
         return f"({self.a})^{self.s}"
-
-
-# class Sigmoid(Node):
-#     def __init__(self, a: Node):
-#         # input
-#         self.a = a
-#         # sigmoid of input
-#         num = One(1)
-#         negX = ScalarMult(-1, self.a)
-#         den = Add(One(1), Exp(negX))
-#         sigmoid = PwDiv(num, den)
-#         # store for later
-#         self.func = sigmoid
-
-#     def id(self):
-#         return f"Sigmoid({self.a.id()})"
-
-#     def eval(self):
-#         return self.func.eval()
-
-#     def diff(self, x: Node):
-#         if self == x:
-#             return np.eye(self.eval().shape[0])
-#         return self.func.diff(x)
-
-#     def __str__(self) -> str:
-#         return f"Sigmoid({self.a})"
 
 
 def Sigmoid(x: Node):
