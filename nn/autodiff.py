@@ -178,13 +178,16 @@ class Mult(Node):
             v = self.eval()
             return diffBySelf(v.shape)
         v = var.eval()
-        v_inv = np.linalg.pinv(v)
         n1 = self.n1.eval()
         n2 = self.n2.eval()
         d_n1 = self.n1.diff(var)
         d_n2 = self.n2.diff(var)
         d_n1n2_v = d_n1 @ v @ n2 + n1 @ d_n2 @ v
-        d_n1n2 = d_n1n2_v @ v_inv
+
+        # https://www.juanklopper.com/wp-content/uploads/2015/03/III_08_Left_and_right_inverses_Pseudoinverses.html
+        v_rightInverse = v.T @ np.linalg.pinv(np.tensordot(v, v.T, 0))
+        d_n1n2 = np.tensordot(d_n1n2_v, v_rightInverse, 0)
+        
         return d_n1n2
 
     def __str__(self) -> str:
