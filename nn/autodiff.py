@@ -4,8 +4,19 @@ import numpy as np
 from helpers import diffBySelf, eye, isZero, matMul, zeros
 
 
+
+
+"""
+# TODOs
+ - the test `if var == self` can probably be moved into Node
+ - the function `id()` can probably be moved into Node (but requires some introspection)
+"""
+
+#%%
+
 # Derivatives on tensors: https://www.et.byu.edu/~vps/ME505/AAEM/V5-07.pdf
 # https://explained.ai/matrix-calculus/index.html#sec:1.3
+
 
 """
 x: dimensions (n)
@@ -20,11 +31,19 @@ X: dimensions (n*m)
 Y: dimensions (u*v)
 dY/dX: (u*v*n*m)
 """
-
 """
-# TODOs
- - the test `if var == self` can probably be moved into Node
- - the function `id()` can probably be moved into Node (but requires some introspection)
+y.diff(x)
+
+is understood to be 
+
+dy |
+-- |
+dx |
+   |x_0
+
+
+so that we can do gradient descent:
+y_1 = y_0 - \alpha y'|_x_0
 """
 
 #%%
