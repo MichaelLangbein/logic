@@ -138,6 +138,7 @@ class Minus(Node):
 class Mult(Node):
     # https://math.stackexchange.com/questions/1866757/not-understanding-derivative-of-a-matrix-matrix-product
     # https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
+    # https://math.stackexchange.com/questions/366922/product-rule-for-matrix-functions
     def __init__(self, n1: Node, n2: Node):
         self.n1 = n1
         self.n2 = n2
@@ -149,16 +150,23 @@ class Mult(Node):
         return self.n1.eval() @ self.n2.eval()
 
     def diff(self, var: Node):
+        """
+         let d_n1n2_v = (AB)'X = A'XB + AB'X
+         (AB)' = d_n1n2_v @ X^-1
+        """
+    
         if self == var:
             v = self.eval()
             return diffBySelf(v.shape)
+        v = var.eval()
+        v_inv = np.linalg.pinv(v)
         n1 = self.n1.eval()
         n2 = self.n2.eval()
         d_n1 = self.n1.diff(var)
         d_n2 = self.n2.diff(var)
-        p1 = d_n1 @ n2
-        p2 = n1 @ d_n2
-        return p1 + p2
+        d_n1n2_v = d_n1 @ v @ n2 + n1 @ d_n2 @ v
+        d_n1n2 = d_n1n2_v @ v_inv
+        return d_n1n2
 
     def __str__(self) -> str:
         return f"{self.n1} * {self.n2}"
