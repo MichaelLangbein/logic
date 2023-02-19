@@ -341,7 +341,7 @@ class AutodiffTests(ut.TestCase):
         b = Variable(np.random.rand(3))
         dadb = a.grad(b)
         self.assertTrue(isZero(dadb))
-        self.assertEquals(dadb.shape, (2, 3, 3))
+        self.assertEqual(dadb.shape, (2, 3, 3))
         c = Mult(a, b)
         self.assertEquals(c.eval().shape, (2,))
         dcdb = c.grad(b)

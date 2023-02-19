@@ -4,8 +4,19 @@ import numpy as np
 from helpers import diffBySelf, eye, isZero, matMul, zeros
 
 
+
+
+"""
+# TODOs
+ - the test `if var == self` can probably be moved into Node
+ - the function `id()` can probably be moved into Node (but requires some introspection)
+"""
+
+#%%
+
 # Derivatives on tensors: https://www.et.byu.edu/~vps/ME505/AAEM/V5-07.pdf
 # https://explained.ai/matrix-calculus/index.html#sec:1.3
+
 
 """
 x: dimensions (n)
@@ -20,11 +31,19 @@ X: dimensions (n*m)
 Y: dimensions (u*v)
 dY/dX: (u*v*n*m)
 """
-
 """
-# TODOs
- - the test `if var == self` can probably be moved into Node
- - the function `id()` can probably be moved into Node (but requires some introspection)
+y.diff(x)
+
+is understood to be 
+
+dy |
+-- |
+dx |
+   |x_0
+
+
+so that we can do gradient descent:
+y_1 = y_0 - \alpha y'|_x_0
 """
 
 #%%
@@ -138,6 +157,7 @@ class Minus(Node):
 class Mult(Node):
     # https://math.stackexchange.com/questions/1866757/not-understanding-derivative-of-a-matrix-matrix-product
     # https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
+    # https://math.stackexchange.com/questions/366922/product-rule-for-matrix-functions
     def __init__(self, n1: Node, n2: Node):
         self.n1 = n1
         self.n2 = n2
@@ -152,6 +172,7 @@ class Mult(Node):
         if self == var:
             v = self.eval()
             return diffBySelf(v.shape)
+        v = var.eval()
         n1 = self.n1.eval()
         n2 = self.n2.eval()
         d_n1 = self.n1.grad(var)
@@ -159,6 +180,14 @@ class Mult(Node):
         p1 = d_n1 @ n2
         p2 = n1 @ d_n2
         return p1 + p2
+
+        # d_n1 = self.n1.diff(var)
+        # d_n2 = self.n2.diff(var)
+        # d_n1n2_v = d_n1 @ v @ n2 + n1 @ d_n2 @ v
+        # # https://www.juanklopper.com/wp-content/uploads/2015/03/III_08_Left_and_right_inverses_Pseudoinverses.html
+        # v_rightInverse = v.T @ np.linalg.pinv(np.tensordot(v, v.T, 0))
+        # d_n1n2 = np.tensordot(d_n1n2_v, v_rightInverse, 0)
+        # return d_n1n2
 
     def __str__(self) -> str:
         return f"{self.n1} * {self.n2}"
