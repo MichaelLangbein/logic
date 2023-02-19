@@ -51,7 +51,7 @@ class FullyConnectedLayer(Layer):
         dE/dWl = dE/dxl dxl/dWl 
         delta Wl = - alpha dE/dWl
         """
-        dx_dW = self.x().diff(self.W)
+        dx_dW = self.x().grad(self.W)
         dE_dW = matMul(dE_dx, dx_dW)
         self.W.value -= 0.01 * dE_dW
 
@@ -94,7 +94,7 @@ class NN:
         self.layer0.setI(Variable(input))
         E = SSE(self.layerL.y(), trueVal)
 
-        dE_dx_l = E.diff(self.layerL.x())
+        dE_dx_l = E.grad(self.layerL.x())
         self.layerL.updateParas(dE_dx_l)
 
         for l in reversed(range(0, self.L)):
@@ -102,7 +102,7 @@ class NN:
             nextLayer = self.layers[l+1]
 
             dE_dx_lp1 = dE_dx_l
-            dx_lp1_dx_l = nextLayer.x().diff(layer.x())
+            dx_lp1_dx_l = nextLayer.x().grad(layer.x())
             dE_dx_l = dE_dx_lp1 @ dx_lp1_dx_l
 
             layer.updateParas(dE_dx_l)
@@ -118,7 +118,7 @@ class NN:
             self.layer0.setI(Variable(input))
             E = SSE(self.layerL.y(), trueVal)
 
-            dE_dx_l = E.diff(self.layerL.x())
+            dE_dx_l = E.grad(self.layerL.x())
             summed_dE_dx_l[self.L] += dE_dx_l
 
             for l in reversed(range(0, self.L)):
@@ -126,7 +126,7 @@ class NN:
                 nextLayer = self.layers[l+1]
 
                 dE_dx_lp1   = dE_dx_l
-                dx_lp1_dx_l = nextLayer.x().diff(layer.x())
+                dx_lp1_dx_l = nextLayer.x().grad(layer.x())
                 dE_dx_l     = dE_dx_lp1 @ dx_lp1_dx_l
 
                 summed_dE_dx_l[l] += dE_dx_l

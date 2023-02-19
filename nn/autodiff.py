@@ -34,7 +34,7 @@ class Node:
     def eval(self) -> np.array:
         raise Exception('Eval not implemented')
 
-    def diff(self, node) -> np.array:
+    def grad(self, node) -> np.array:
         raise Exception('Diff not implemented')
 
     # def id(self) -> str:
@@ -64,14 +64,14 @@ class Variable(Node):
     def eval(self):
         return self.value
 
-    def diff(self, variable: Node):
+    def grad(self, variable: Node):
         v = self.eval()
         o = variable.eval()
-        derivativeDims = v.shape + o.shape
+        gradientDims = v.shape + o.shape
         if self == variable:
             return diffBySelf(v.shape)
         else:
-            return zeros(*derivativeDims)
+            return zeros(*gradientDims)
 
     def __str__(self) -> str:
         return f"{self.value}"
@@ -104,11 +104,11 @@ class Add(Node):
     def eval(self):
         return self.n1.eval() + self.n2.eval()
 
-    def diff(self, var: Node):
+    def grad(self, var: Node):
         if self == var:
             v = self.eval()
             return diffBySelf(v.shape)
-        return self.n1.diff(var) + self.n2.diff(var)
+        return self.n1.grad(var) + self.n2.grad(var)
 
     def __str__(self) -> str:
         return f"{self.n1} + {self.n2}"
@@ -125,11 +125,11 @@ class Minus(Node):
     def eval(self):
         return self.n1.eval() - self.n2.eval()
 
-    def diff(self, var: Node):
+    def grad(self, var: Node):
         if self == var:
             v = self.eval()
             return diffBySelf(v.shape)
-        return self.n1.diff(var) - self.n2.diff(var)
+        return self.n1.grad(var) - self.n2.grad(var)
 
     def __str__(self) -> str:
         return f"{self.n1} - {self.n2}"
@@ -148,14 +148,14 @@ class Mult(Node):
     def eval(self):
         return self.n1.eval() @ self.n2.eval()
 
-    def diff(self, var: Node):
+    def grad(self, var: Node):
         if self == var:
             v = self.eval()
             return diffBySelf(v.shape)
         n1 = self.n1.eval()
         n2 = self.n2.eval()
-        d_n1 = self.n1.diff(var)
-        d_n2 = self.n2.diff(var)
+        d_n1 = self.n1.grad(var)
+        d_n2 = self.n2.grad(var)
         p1 = d_n1 @ n2
         p2 = n1 @ d_n2
         return p1 + p2
@@ -174,13 +174,13 @@ class Inv(Node):
     def eval(self):
         return np.invert(self.n.eval())
 
-    def diff(self, var):
+    def grad(self, var):
         """ https://math.stackexchange.com/questions/1471825/derivative-of-the-inverse-of-a-matrix """
         if self == var:
             v = self.eval()
             return diffBySelf(v.shape)
         nV = self.n.eval()
-        nD = self.n.diff(var)
+        nD = self.n.grad(var)
         nI = np.invert(nV)
         return - (nI * (nD * nI))
 
@@ -198,11 +198,11 @@ class Div(Node):
     def eval(self):
         return self.n.eval()
 
-    def diff(self, var: Node):
+    def grad(self, var: Node):
         if self == var:
             v = self.eval()
             return diffBySelf(v.shape)
-        return self.n.diff(var)
+        return self.n.grad(var)
 
     def __str__(self) -> str:
         return f"{self.n}"
@@ -218,11 +218,11 @@ class Exp(Node):
     def eval(self):
         return np.exp(self.n.eval())
 
-    def diff(self, var: Node):
+    def grad(self, var: Node):
         if self == var:
             v = self.eval()
             return diffBySelf(v.shape)
-        nD = self.n.diff(var)
+        nD = self.n.grad(var)
         eV = self.eval()
         return nD * eV
 
@@ -240,12 +240,12 @@ class Ln(Node):
     def eval(self):
         return np.log(self.u.eval())
 
-    def diff(self, var: Node):
+    def grad(self, var: Node):
         if self == var:
             v = self.eval()
             return diffBySelf(v.shape)
         u = self.u.eval()
-        uD = self.u.diff(var)
+        uD = self.u.grad(var)
         ddu_lnu = np.diag(1 / u)
         return ddu_lnu * uD
 
@@ -269,14 +269,14 @@ class PwDiv(Node):
         bV = self.b.eval()
         return aV / bV
 
-    def diff(self, variable: Variable):
+    def grad(self, variable: Variable):
         if self == variable:
             v = self.eval()
             return diffBySelf(v.shape)
         a = self.a.eval()
         b = self.b.eval()
-        da = self.a.diff(variable)
-        db = self.b.diff(variable)
+        da = self.a.grad(variable)
+        db = self.b.grad(variable)
         return (da * b - a * db) / b**2
 
     def __str__(self) -> str:
@@ -300,7 +300,7 @@ class PwProd:
         bVal = self.b.eval()
         return np.prod([aVal, bVal], 0)
 
-    def diff(self, variable: Variable):
+    def grad(self, variable: Variable):
         if self == variable:
             v = self.eval()
             return diffBySelf(v.shape)
@@ -311,8 +311,8 @@ class PwProd:
         """
         aVal = self.a.eval()
         bVal = self.b.eval()
-        aDif = self.a.diff(variable)
-        bDif = self.b.diff(variable)
+        aDif = self.a.grad(variable)
+        bDif = self.b.grad(variable)
         aDifT = aDif if np.isscalar(aDif) else aDif.transpose()
         bDifT = bDif if np.isscalar(bDif) else bDif.transpose()
         s = (aDifT * bVal) + (bDifT * aVal)
@@ -335,11 +335,11 @@ class ScalarMult(Node):
         nodeVal = self.node.eval()
         return self.scalar * nodeVal
 
-    def diff(self, variable: Variable):
+    def grad(self, variable: Variable):
         if self == variable:
             v = self.eval()
             return diffBySelf(v.shape)
-        diffVal = self.node.diff(variable)
+        diffVal = self.node.grad(variable)
         return self.scalar * diffVal
 
     def __str__(self) -> str:
@@ -357,7 +357,7 @@ class InnerSum(Node):
         nodeVal = self.node.eval()
         return np.sum(nodeVal)
 
-    def diff(self, variable: Variable):
+    def grad(self, variable: Variable):
         if self == variable:
             v = self.eval()
             return diffBySelf(v.shape)
@@ -365,7 +365,7 @@ class InnerSum(Node):
             d/dx sum(u) = [d/dx1 sum(u), d/dx2 sum(u), ...]
                         = col_sum(du/dx)
         """
-        nodeDiff = self.node.diff(variable)
+        nodeDiff = self.node.grad(variable)
         return np.sum(nodeDiff, 0)
 
     def __str__(self) -> str:
@@ -380,7 +380,7 @@ class InnerSum(Node):
 #     def eval(self):
 #         return np.power(self.base.eval(), self.pow.eval())
 
-#     def diff(self, var: Node):
+#     def grad(self, var: Node):
 #         """
 #             a = e^log(a)
 #             a^b = e^(log(a) * b)
@@ -403,7 +403,7 @@ class ScalarPower(Node):
         av = self.a.eval()
         return np.power(av, self.s)
 
-    def diff(self, x: Node):
+    def grad(self, x: Node):
         if self == x:
             v = self.eval()
             return diffBySelf(v.shape)
@@ -414,7 +414,7 @@ class ScalarPower(Node):
         s = self.s
         av = self.a.eval()
         apowsm1 = av**(s-1)
-        da_dx = self.a.diff(x)
+        da_dx = self.a.grad(x)
         return s * (apowsm1 * da_dx)
 
     def __str__(self) -> str:
@@ -439,10 +439,10 @@ class ScalarPower(Node):
 #     def eval(self):
 #         return self.func.eval()
 
-#     def diff(self, x: Node):
+#     def grad(self, x: Node):
 #         if self == x:
 #             return np.eye(self.eval().shape[0])
-#         return self.func.diff(x)
+#         return self.func.grad(x)
 
 #     def __str__(self) -> str:
 #         return f"Sigmoid({self.a})"

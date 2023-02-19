@@ -56,7 +56,7 @@ class NNTests(ut.TestCase):
         predictionV = layer.y()
         errorV = SSE(predictionV, output)
         error = errorV.eval()
-        dEdX = errorV.diff(layer.x())
+        dEdX = errorV.grad(layer.x())
         self.assertNotEqual(dEdX, 0.0)
         layer.updateParas(dEdX)
 
@@ -84,14 +84,14 @@ class NNTests(ut.TestCase):
 
 
         # Backprop last layer
-        dE_dx_2 = E.diff(layer2.x())
+        dE_dx_2 = E.grad(layer2.x())
         layer2.updateParas(dE_dx_2)
         #
         self.assertEqual(dE_dx_2.shape, (1,))
 
 
         # Backprop middle layer
-        dx_2_dx_1 = layer2.x().diff(layer1.x())
+        dx_2_dx_1 = layer2.x().grad(layer1.x())
         dE_dx_1 = dE_dx_2 @ dx_2_dx_1
         layer1.updateParas(dE_dx_1)
         #
@@ -101,7 +101,7 @@ class NNTests(ut.TestCase):
 
 
         # Backprop first layer
-        dx_1_dx_0 = layer1.x().diff(layer0.x())
+        dx_1_dx_0 = layer1.x().grad(layer0.x())
         dE_dx_0 = dE_dx_1 @ dx_1_dx_0
         layer0.updateParas(dE_dx_0)
         #

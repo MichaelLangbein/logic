@@ -29,15 +29,18 @@ def isZero(something):
     return False
 
 
-def matMul(a, b):
-    if a.shape == (1,):
-        return a[0] * b
-    if b.shape == (1,):
-        return a * b[0]
-    try:
-        return a @ b
-    except:
-        print("Error")
+def matMul(A, B):
+    axesA = []
+    axesB = []
+    dimsA = [(i, v) for  (i, v) in enumerate(A.shape)]
+    dimsB = [(i, v) for  (i, v) in enumerate(B.shape)]
+    for (i, da), (j, db) in zip(reversed(dimsA), dimsB):
+        if da == db:
+            axesA.append(i)
+            axesB.append(j)
+        else: 
+            break
+    return np.tensordot(A, B, axes=(axesA, axesB))
 
 
 def permutations(ranges):
@@ -61,7 +64,3 @@ def diffBySelf(shape):
     for indices in permutations(shape):
         out[*indices][*indices] = 1
     return out
-
-
-
-permutations([2, 3])

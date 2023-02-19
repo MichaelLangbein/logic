@@ -59,7 +59,7 @@ class AutodiffTests(ut.TestCase):
             du/du = eye
         """
         u = Variable(np.array([1, 2, 3]))
-        dudu = u.diff(u)
+        dudu = u.grad(u)
         self.assertEqual(dudu.tolist(), eye((3, 3)))
 
     def testSum(self):
@@ -72,8 +72,8 @@ class AutodiffTests(ut.TestCase):
         v = Variable(np.array([2, 3, 4]))
         s = Add(u, v)
         sVal = s.eval()
-        dSdu = s.diff(u)
-        dSdv = s.diff(v)
+        dSdu = s.grad(u)
+        dSdv = s.grad(v)
         self.assertClose(sVal.tolist(), [3, 5, 7])
         self.assertClose(dSdu.tolist(), eye((3, 3)))
         self.assertClose(dSdv.tolist(), eye((3, 3)))
@@ -86,14 +86,14 @@ class AutodiffTests(ut.TestCase):
         u = Variable(np.array([1, 2, 3]))
         i = InnerSum(u)
         iVal = i.eval()
-        dIdu = i.diff(u)
+        dIdu = i.grad(u)
         self.assertAlmostEqual(iVal, np.array(6))
         self.assertClose(dIdu, np.array([1, 1, 1]))
 
         v = Variable(np.array([2, 3, 4]))
         s = Add(u, v)
         si = InnerSum(s)
-        dsidv = si.diff(v)
+        dsidv = si.grad(v)
         self.assertClose(dsidv, np.array([1, 1, 1]))
 
     def testNestedExpression(self):
@@ -108,7 +108,7 @@ class AutodiffTests(ut.TestCase):
         v = Variable(np.array([2, 3, 4]))
         sv = Add(u, v)
         si = InnerSum(sv)
-        dsidu = si.diff(u)
+        dsidu = si.grad(u)
         self.assertClose(dsidu, np.array([1, 1, 1]))
     
     def testMatrixVectorMult(self):
@@ -121,13 +121,13 @@ class AutodiffTests(ut.TestCase):
         M = Variable(np.array([[1., 2.], [3., 4.]]))
         p = Mult(M, v)
         pVal = p.eval()
-        pDifV = p.diff(v)
-        pDifM = p.diff(M)
+        grad_p_V = p.grad(v)
+        grad_p_M = p.grad(M)
 
         pExpected = np.array([5, 11])
         self.assertClose(pVal, pExpected)
-        self.assertClose(pDifV, M.value)
-        self.assertClose(pDifM.shape, [2, 2, 2])
+        self.assertClose(grad_p_V, M.value)
+        self.assertClose(grad_p_M.shape, [2, 2, 2])
 
     def testExp(self):
         """
@@ -137,7 +137,7 @@ class AutodiffTests(ut.TestCase):
         """
         u = Variable(np.array([1, 2, 3]))
         e = Exp(u)
-        dedu = e.diff(u)
+        dedu = e.grad(u)
         self.assertClose(dedu.tolist(),[
             [np.exp(1), 0, 0],
             [0, np.exp(2), 0],
@@ -146,7 +146,7 @@ class AutodiffTests(ut.TestCase):
 
         v = Variable(np.array([2, 3, 4]))
         e2 = Exp(Add(u, v))
-        de2dv = e2.diff(v)
+        de2dv = e2.grad(v)
         self.assertClose(de2dv.tolist(), [
             [np.exp(1 + 2), 0, 0],
             [0, np.exp(2 + 3), 0],
@@ -163,7 +163,7 @@ class AutodiffTests(ut.TestCase):
         u = Variable(np.array([1, 2, 3]))
         v = Variable(np.array([2, 3, 4]))
         p = PwProd(u, v)
-        dpdu = p.diff(u)
+        dpdu = p.grad(u)
         self.assertClose(dpdu.tolist(), [
             [2, 0, 0],
             [0, 3, 0],
@@ -180,7 +180,7 @@ class AutodiffTests(ut.TestCase):
         """
         s = Add(u, v)
         p2 = PwProd(s, v)
-        dp2du = p2.diff(u)
+        dp2du = p2.grad(u)
         self.assertClose(dp2du.tolist(), [
             [2, 0, 0],
             [0, 3, 0],
@@ -191,13 +191,13 @@ class AutodiffTests(ut.TestCase):
         u = Variable(np.array([1, 2, 3]))
         v = Variable(np.array([2, 3, 4]))
         d = PwDiv(u, v)
-        dddu = d.diff(u)
+        dddu = d.grad(u)
         self.assertClose(dddu.tolist(), [
             [1/2, 0, 0],
             [0, 1/3, 0],
             [0, 0, 1/4]
         ])
-        dddv = d.diff(v)
+        dddv = d.grad(v)
         self.assertClose(dddv.tolist(), [
             [-1/(2**2), 0, 0],
             [0, -2/(3**2), 0],
@@ -213,7 +213,7 @@ class AutodiffTests(ut.TestCase):
         x2V = ScalarPower(xV, 2)
 
         x2val = x2V.eval()
-        x2dx = x2V.diff(xV)
+        x2dx = x2V.grad(xV)
 
         self.assertClose(x2val, x2)
         self.assertClose(x2dx, np.diag(2*x))
@@ -231,7 +231,7 @@ class AutodiffTests(ut.TestCase):
         x = Variable(data)
         s = Sigmoid(x)
         sVal = s.eval()
-        sDif = s.diff(x)
+        sDif = s.grad(x)
 
         self.assertClose(sVal, sig(data))
         self.assertClose(sDif, dsig(data))
@@ -245,7 +245,7 @@ class AutodiffTests(ut.TestCase):
         x = Variable(data)
         s = Softmax(x)
         sVal = s.eval()
-        sDif = s.diff(x)
+        sDif = s.grad(x)
         self.assertClose(sVal, sm(data))
         self.assertClose(sDif.shape, data.shape)
 
@@ -263,16 +263,16 @@ class AutodiffTests(ut.TestCase):
         sseV = SSE(ySimV, yObs)
 
         sseVal = sseV.eval()
-        sseDx = sseV.diff(xV)
-        sseDy = sseV.diff(ySimV)
+        sseDx = sseV.grad(xV)
+        sseDy = sseV.grad(ySimV)
 
         self.assertAlmostEqual(sseVal, sseObs)
 
         betterYSimV = ScalarPower(xV, 2)
         betterSseV = SSE(betterYSimV, yObs)
         betterSseVal = betterSseV.eval()
-        betterSseDx = betterSseV.diff(xV)
-        betterSseDy = betterSseV.diff(ySimV)
+        betterSseDx = betterSseV.grad(xV)
+        betterSseDy = betterSseV.grad(ySimV)
 
         self.assertAlmostEqual(betterSseVal, 0)
         self.assertClose(betterSseDx, np.array([0, 0, 0]))
@@ -297,7 +297,7 @@ class AutodiffTests(ut.TestCase):
         c = Variable(np.array([3]))
         y = Mult(a, b)
         z = Add(c, y)
-        dzdy = z.diff(y)
+        dzdy = z.grad(y)
         self.assertClose(dzdy, np.array([[1.0]]))
 
 
@@ -333,20 +333,20 @@ class AutodiffTests(ut.TestCase):
         y = Mult(a, b)
         z = Add(c, y)
         y2 = Mult(a, b)
-        dzdy = z.diff(y2)
+        dzdy = z.grad(y2)
         self.assertClose(dzdy, np.array([[1.0]]))
     
-    def testComplicatedDerivatives(self):
+    def testComplicatedGradients(self):
         a = Variable(np.random.rand(2, 3))
         b = Variable(np.random.rand(3))
-        dadb = a.diff(b)
+        dadb = a.grad(b)
         self.assertTrue(isZero(dadb))
         self.assertEquals(dadb.shape, (2, 3, 3))
         c = Mult(a, b)
         self.assertEquals(c.eval().shape, (2,))
-        dcdb = c.diff(b)
+        dcdb = c.grad(b)
         self.assertEquals(dcdb.shape, (2, 3))
-        dcda = c.diff(a)
+        dcda = c.grad(a)
         self.assertEquals(dcda.shape, (2, 2, 3))
 
 
