@@ -1,6 +1,6 @@
 import unittest as ut
 import numpy as np
-from autodiff import SSE, Sigmoid, Variable
+from autodiff import SSE, Sigmoid, Variable, Mult
 from nn import FullyConnectedLayer, NN, training, validation
 
 
