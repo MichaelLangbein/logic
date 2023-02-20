@@ -29,17 +29,22 @@ def isZero(something):
     return False
 
 
-def matMul(A, B):
+def matMul(A, B, nrDims):
     axesA = []
     axesB = []
-    dimsA = [(i, v) for  (i, v) in enumerate(A.shape)]
-    dimsB = [(i, v) for  (i, v) in enumerate(B.shape)]
-    for (i, da), (j, db) in zip(reversed(dimsA), dimsB):
-        if da == db:
-            axesA.append(i)
-            axesB.append(j)
-        else: 
-            break
+    if not nrDims:
+        dimsA = [(i, v) for  (i, v) in enumerate(A.shape)]
+        dimsB = [(i, v) for  (i, v) in enumerate(B.shape)]
+        for (i, da), (j, db) in zip(reversed(dimsA), dimsB):
+            if da == db:
+                axesA.append(i)
+                axesB.append(j)
+            else: 
+                break
+    else:
+        lA = len(A.shape) - 1
+        axesA = [lA - i for i in range(nrDims)]
+        axesB = [i      for i in range(nrDims)]
     return np.tensordot(A, B, axes=(axesA, axesB))
 
 

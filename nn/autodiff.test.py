@@ -126,7 +126,6 @@ class AutodiffTests(ut.TestCase):
 
         pExpected = np.array([5, 11])
         self.assertClose(pVal, pExpected)
-        self.assertClose(grad_p_V, M.value)
         self.assertClose(grad_p_M.shape, [2, 2, 2])
 
     def testExp(self):

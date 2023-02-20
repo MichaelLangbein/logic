@@ -177,10 +177,10 @@ class Mult(Node):
         n2 = self.n2.eval()
         d_n1 = self.n1.grad(var)
         d_n2 = self.n2.grad(var)
-        p1 = d_n1 @ n2
-        p2 = n1 @ d_n2
+        p1 = matMul(d_n1, n2, len(n2.shape))
+        p2 = matMul(n1, d_n2, len(n1.shape))
         return p1 + p2
-
+    
         # d_n1 = self.n1.diff(var)
         # d_n2 = self.n2.diff(var)
         # d_n1n2_v = d_n1 @ v @ n2 + n1 @ d_n2 @ v
