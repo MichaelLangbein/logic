@@ -154,87 +154,68 @@ class Minus(Node):
         return f"{self.n1} - {self.n2}"
 
 
-class Mult(Node):
-    # https://math.stackexchange.com/questions/1866757/not-understanding-derivative-of-a-matrix-matrix-product
-    # https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
-    # https://math.stackexchange.com/questions/366922/product-rule-for-matrix-functions
-    def __init__(self, n1: Node, n2: Node):
-        self.n1 = n1
-        self.n2 = n2
+# class Mult(Node):
+#     # https://math.stackexchange.com/questions/1866757/not-understanding-derivative-of-a-matrix-matrix-product
+#     # https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
+#     # https://math.stackexchange.com/questions/366922/product-rule-for-matrix-functions
+#     def __init__(self, n1: Node, n2: Node):
+#         self.n1 = n1
+#         self.n2 = n2
 
-    def id(self):
-        return f"Mult({self.n1.id()}, {self.n2.id()})"
+#     def id(self):
+#         return f"Mult({self.n1.id()}, {self.n2.id()})"
 
-    def eval(self):
-        return self.n1.eval() @ self.n2.eval()
+#     def eval(self):
+#         return self.n1.eval() @ self.n2.eval()
 
-    def grad(self, var: Node):
-        if self == var:
-            v = self.eval()
-            return diffBySelf(v.shape)
-        v = var.eval()
-        n1 = self.n1.eval()
-        n2 = self.n2.eval()
-        d_n1 = self.n1.grad(var)
-        d_n2 = self.n2.grad(var)
-        p1 = matMul(d_n1, n2, len(n2.shape))
-        p2 = matMul(n1, d_n2, len(n1.shape))
-        return p1 + p2
+#     def grad(self, var: Node):
+#         if self == var:
+#             v = self.eval()
+#             return diffBySelf(v.shape)
+#         v = var.eval()
+#         n1 = self.n1.eval()
+#         n2 = self.n2.eval()
+#         d_n1 = self.n1.grad(var)
+#         d_n2 = self.n2.grad(var)
+#         p1 = matMul(d_n1, n2, len(n2.shape))
+#         p2 = matMul(n1, d_n2, len(n1.shape))
+#         return p1 + p2
     
-        # d_n1 = self.n1.diff(var)
-        # d_n2 = self.n2.diff(var)
-        # d_n1n2_v = d_n1 @ v @ n2 + n1 @ d_n2 @ v
-        # # https://www.juanklopper.com/wp-content/uploads/2015/03/III_08_Left_and_right_inverses_Pseudoinverses.html
-        # v_rightInverse = v.T @ np.linalg.pinv(np.tensordot(v, v.T, 0))
-        # d_n1n2 = np.tensordot(d_n1n2_v, v_rightInverse, 0)
-        # return d_n1n2
+#         # d_n1 = self.n1.diff(var)
+#         # d_n2 = self.n2.diff(var)
+#         # d_n1n2_v = d_n1 @ v @ n2 + n1 @ d_n2 @ v
+#         # # https://www.juanklopper.com/wp-content/uploads/2015/03/III_08_Left_and_right_inverses_Pseudoinverses.html
+#         # v_rightInverse = v.T @ np.linalg.pinv(np.tensordot(v, v.T, 0))
+#         # d_n1n2 = np.tensordot(d_n1n2_v, v_rightInverse, 0)
+#         # return d_n1n2
 
-    def __str__(self) -> str:
-        return f"{self.n1} * {self.n2}"
-
-
-class Inv(Node):
-    def __init__(self, n: Node):
-        self.n = n
-
-    def id(self):
-        return f"Inv({self.n.id()})"
-
-    def eval(self):
-        return np.invert(self.n.eval())
-
-    def grad(self, var):
-        """ https://math.stackexchange.com/questions/1471825/derivative-of-the-inverse-of-a-matrix """
-        if self == var:
-            v = self.eval()
-            return diffBySelf(v.shape)
-        nV = self.n.eval()
-        nD = self.n.grad(var)
-        nI = np.invert(nV)
-        return - (nI * (nD * nI))
-
-    def __str__(self) -> str:
-        return f"({self.n})^-1"
+#     def __str__(self) -> str:
+#         return f"{self.n1} * {self.n2}"
 
 
-class Div(Node):
-    def __init__(self, n1: Node, n2: Node):
-        self.n = Mult(n1, Inv(n2))
+# class Inv(Node):
+#     def __init__(self, n: Node):
+#         self.n = n
 
-    def id(self):
-        return f"Div({self.n.id()})"
+#     def id(self):
+#         return f"Inv({self.n.id()})"
 
-    def eval(self):
-        return self.n.eval()
+#     def eval(self):
+#         return np.invert(self.n.eval())
 
-    def grad(self, var: Node):
-        if self == var:
-            v = self.eval()
-            return diffBySelf(v.shape)
-        return self.n.grad(var)
+#     def grad(self, var):
+#         """ https://math.stackexchange.com/questions/1471825/derivative-of-the-inverse-of-a-matrix """
+#         if self == var:
+#             v = self.eval()
+#             return diffBySelf(v.shape)
+#         nV = self.n.eval()
+#         nD = self.n.grad(var)
+#         nI = np.invert(nV)
+#         return - (nI * (nD * nI))
 
-    def __str__(self) -> str:
-        return f"{self.n}"
+#     def __str__(self) -> str:
+#         return f"({self.n})^-1"
+
 
 
 class Exp(Node):
@@ -401,25 +382,6 @@ class InnerSum(Node):
         return f"innersum({self.node})"
 
 
-# def Pow(Node):
-#     def __init__(self, base: Node, pow: Node):
-#         self.base = base
-#         self.pow = pow
-
-#     def eval(self):
-#         return np.power(self.base.eval(), self.pow.eval())
-
-#     def grad(self, var: Node):
-#         """
-#             a = e^log(a)
-#             a^b = e^(log(a) * b)
-#             d a^b / dx = d/dx e^(log(a) * b)
-#                        = d/dx (log(a) * b) e^(log(a) * b)
-#                        = d/dx (log(a) * b) a^b
-#                        = (a'b/a + log(a)b') * a^b
-#         """
-
-
 class ScalarPower(Node):
     def __init__(self, a: Node, s: float):
         self.a = a
@@ -448,33 +410,6 @@ class ScalarPower(Node):
 
     def __str__(self) -> str:
         return f"({self.a})^{self.s}"
-
-
-# class Sigmoid(Node):
-#     def __init__(self, a: Node):
-#         # input
-#         self.a = a
-#         # sigmoid of input
-#         num = One(1)
-#         negX = ScalarMult(-1, self.a)
-#         den = Add(One(1), Exp(negX))
-#         sigmoid = PwDiv(num, den)
-#         # store for later
-#         self.func = sigmoid
-
-#     def id(self):
-#         return f"Sigmoid({self.a.id()})"
-
-#     def eval(self):
-#         return self.func.eval()
-
-#     def grad(self, x: Node):
-#         if self == x:
-#             return np.eye(self.eval().shape[0])
-#         return self.func.grad(x)
-
-#     def __str__(self) -> str:
-#         return f"Sigmoid({self.a})"
 
 
 def Sigmoid(x: Node):

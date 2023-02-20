@@ -1,6 +1,6 @@
 import unittest as ut
 import numpy as np
-from autodiff import Add, Exp, InnerSum, Mult, PwProd, PwDiv, Variable, ScalarMult, Sigmoid, Softmax, SSE, ScalarPower
+from autodiff import Add, Exp, InnerSum, PwProd, PwDiv, Variable, ScalarMult, Sigmoid, Softmax, SSE, ScalarPower
 from helpers import eye, isZero
 
 
@@ -111,22 +111,22 @@ class AutodiffTests(ut.TestCase):
         dsidu = si.grad(u)
         self.assertClose(dsidu, np.array([1, 1, 1]))
     
-    def testMatrixVectorMult(self):
-        """
-        p = Mv
-        dp/dv = M
-        dp/dM: (2x2x2)
-        """
-        v = Variable(np.array([1., 2.]))
-        M = Variable(np.array([[1., 2.], [3., 4.]]))
-        p = Mult(M, v)
-        pVal = p.eval()
-        grad_p_V = p.grad(v)
-        grad_p_M = p.grad(M)
+    # def testMatrixVectorMult(self):
+    #     """
+    #     p = Mv
+    #     dp/dv = M
+    #     dp/dM: (2x2x2)
+    #     """
+    #     v = Variable(np.array([1., 2.]))
+    #     M = Variable(np.array([[1., 2.], [3., 4.]]))
+    #     p = Mult(M, v)
+    #     pVal = p.eval()
+    #     grad_p_V = p.grad(v)
+    #     grad_p_M = p.grad(M)
 
-        pExpected = np.array([5, 11])
-        self.assertClose(pVal, pExpected)
-        self.assertClose(grad_p_M.shape, [2, 2, 2])
+    #     pExpected = np.array([5, 11])
+    #     self.assertClose(pVal, pExpected)
+    #     self.assertClose(grad_p_M.shape, [2, 2, 2])
 
     def testExp(self):
         """
@@ -277,76 +277,76 @@ class AutodiffTests(ut.TestCase):
         self.assertClose(betterSseDx, np.array([0, 0, 0]))
 
 
-    def testNotTooDeep(self):
-        """
-            y = a*b
-            z = c + y
-            dz/dy = ddy(c + y)
-                  = 0 + dy/dy
-                    .... good:
-                        = 1.0
-                    .... bad:
-                        = ddy (a*b) 
-                        = da/dy b + a db/dy
-                        = 0*b + a*0
-                        = 0
-        """
-        a = Variable(np.array([1]))
-        b = Variable(np.array([2]))
-        c = Variable(np.array([3]))
-        y = Mult(a, b)
-        z = Add(c, y)
-        dzdy = z.grad(y)
-        self.assertClose(dzdy, np.array([[1.0]]))
+    # def testNotTooDeep(self):
+    #     """
+    #         y = a*b
+    #         z = c + y
+    #         dz/dy = ddy(c + y)
+    #               = 0 + dy/dy
+    #                 .... good:
+    #                     = 1.0
+    #                 .... bad:
+    #                     = ddy (a*b) 
+    #                     = da/dy b + a db/dy
+    #                     = 0*b + a*0
+    #                     = 0
+    #     """
+    #     a = Variable(np.array([1]))
+    #     b = Variable(np.array([2]))
+    #     c = Variable(np.array([3]))
+    #     y = Mult(a, b)
+    #     z = Add(c, y)
+    #     dzdy = z.grad(y)
+    #     self.assertClose(dzdy, np.array([[1.0]]))
 
 
-    def testEffectiveExpressionEquality(self):
-        a = Variable(np.array([1]))
-        b = Variable(np.array([2]))
-        c1 = Mult(a, b)
-        c2 = Mult(a, b)
-        # c1 and c1 live at different memory-adresses,
-        # so conventionally c1 != c2.
-        # Only evaluates to equal if
-        # autodiff has a concept of expression-equality.
-        self.assertEqual(c1, c2)
+    # def testEffectiveExpressionEquality(self):
+    #     a = Variable(np.array([1]))
+    #     b = Variable(np.array([2]))
+    #     c1 = Mult(a, b)
+    #     c2 = Mult(a, b)
+    #     # c1 and c1 live at different memory-adresses,
+    #     # so conventionally c1 != c2.
+    #     # Only evaluates to equal if
+    #     # autodiff has a concept of expression-equality.
+    #     self.assertEqual(c1, c2)
 
 
-    def testNotTooDeepWithNewVariable(self):
-        """
-            y = a*b
-            z = c + y
-            dz/dy = ddy(c + y)
-                  = 0 + dy/dy
-                    .... good:
-                        = 1.0
-                    .... bad:
-                        = ddy (a*b) 
-                        = da/dy b + a db/dy
-                        = 0*b + a*0
-                        = 0
-        """
-        a = Variable(np.array([1]))
-        b = Variable(np.array([2]))
-        c = Variable(np.array([3]))
-        y = Mult(a, b)
-        z = Add(c, y)
-        y2 = Mult(a, b)
-        dzdy = z.grad(y2)
-        self.assertClose(dzdy, np.array([[1.0]]))
+    # def testNotTooDeepWithNewVariable(self):
+    #     """
+    #         y = a*b
+    #         z = c + y
+    #         dz/dy = ddy(c + y)
+    #               = 0 + dy/dy
+    #                 .... good:
+    #                     = 1.0
+    #                 .... bad:
+    #                     = ddy (a*b) 
+    #                     = da/dy b + a db/dy
+    #                     = 0*b + a*0
+    #                     = 0
+    #     """
+    #     a = Variable(np.array([1]))
+    #     b = Variable(np.array([2]))
+    #     c = Variable(np.array([3]))
+    #     y = Mult(a, b)
+    #     z = Add(c, y)
+    #     y2 = Mult(a, b)
+    #     dzdy = z.grad(y2)
+    #     self.assertClose(dzdy, np.array([[1.0]]))
     
-    def testComplicatedGradients(self):
-        a = Variable(np.random.rand(2, 3))
-        b = Variable(np.random.rand(3))
-        dadb = a.grad(b)
-        self.assertTrue(isZero(dadb))
-        self.assertEqual(dadb.shape, (2, 3, 3))
-        c = Mult(a, b)
-        self.assertEquals(c.eval().shape, (2,))
-        dcdb = c.grad(b)
-        self.assertEquals(dcdb.shape, (2, 3))
-        dcda = c.grad(a)
-        self.assertEquals(dcda.shape, (2, 2, 3))
+    # def testComplicatedGradients(self):
+    #     a = Variable(np.random.rand(2, 3))
+    #     b = Variable(np.random.rand(3))
+    #     dadb = a.grad(b)
+    #     self.assertTrue(isZero(dadb))
+    #     self.assertEqual(dadb.shape, (2, 3, 3))
+    #     c = Mult(a, b)
+    #     self.assertEquals(c.eval().shape, (2,))
+    #     dcdb = c.grad(b)
+    #     self.assertEquals(dcdb.shape, (2, 3))
+    #     dcda = c.grad(a)
+    #     self.assertEquals(dcda.shape, (2, 2, 3))
 
 
 
