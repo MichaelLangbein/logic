@@ -1,6 +1,6 @@
 import unittest as ut
 import numpy as np
-from autodiff import Add, Exp, InnerSum, PwProd, PwDiv, Variable, ScalarMult, Sigmoid, Softmax, SSE, ScalarPower
+from autodiff import Add, Exp, InnerSum, PwProd, PwDiv, Variable, ScalarMult, Mult, Sigmoid, Softmax, SSE, ScalarPower
 from helpers import eye, isZero
 
 
@@ -309,7 +309,7 @@ class AutodiffTests(ut.TestCase):
         # so conventionally c1 != c2.
         # Only evaluates to equal if
         # autodiff has a concept of expression-equality.
-        self.assertEqual(c1, c2)
+        self.assertTrue(c1 == c2)
 
 
     def testNotTooDeepWithNewVariable(self):

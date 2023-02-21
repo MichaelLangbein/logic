@@ -181,8 +181,8 @@ class Mult(Node):
         n2 = self.n2.eval()
         d_n1 = self.n1.grad(var)
         d_n2 = self.n2.grad(var)
-        p1 = matMul(d_n1, n2, len(n2.shape))
-        p2 = matMul(n1, d_n2, len(n1.shape))
+        p1 = matMul(d_n1, n2, 1) #len(n2.shape))
+        p2 = matMul(n1, d_n2, 1) #len(n1.shape))
         return p1 + p2
     
         # d_n1 = self.n1.diff(var)
@@ -296,7 +296,7 @@ class PwDiv(Node):
         return f"({self.a} ./ {self.b})"
 
         
-class PwProd:
+class PwProd(Node):
     """
         Point-wise product
     """
