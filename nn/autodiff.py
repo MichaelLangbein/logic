@@ -160,6 +160,8 @@ class Mult(Node):
     # https://math.stackexchange.com/questions/1866757/not-understanding-derivative-of-a-matrix-matrix-product
     # https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf
     # https://math.stackexchange.com/questions/366922/product-rule-for-matrix-functions
+    # https://www.cs.cmu.edu/~epxing/Class/10701-08s/recitation/mc.pdf: page 505, formula (1366)
+    # https://math.stackexchange.com/questions/1819202/product-rule-for-matrix-valued-functions-and-differentiability-of-matrix-multipl
     def __init__(self, n1: Node, n2: Node):
         self.n1 = n1
         self.n2 = n2
