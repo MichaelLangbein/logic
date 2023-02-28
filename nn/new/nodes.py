@@ -7,6 +7,8 @@ class Node(ABC):
         pass
     def derivative(self, wrt, at):
         pass
+    def getVariables(self):
+        pass
 
 
 class Constant(Node):
@@ -18,6 +20,9 @@ class Constant(Node):
     
     def derivative(self, wrt, at):
         return 0
+
+    def getVariables(self):
+        return []
 
 
 class Variable(Node):
@@ -32,6 +37,9 @@ class Variable(Node):
         if self.name == wrt.name:
             return 1
         return 0
+    
+    def getVariables(self):
+        return [self]
 
 
 class Add(Node):
@@ -45,6 +53,8 @@ class Add(Node):
     def derivative(self, wrt, at):
         return 1
 
+    def getVariables(self):
+        return [self.a, self.b]
    
 class Mult(Node):
     def __init__(self, a, b):
@@ -60,6 +70,9 @@ class Mult(Node):
         if wrt == self.b:
             return self.a.eval(at)
         
+    def getVariables(self):
+        return [self.a, self.b]
+
 
 class Sin(Node):
     def __init__(self, a):
@@ -74,6 +87,9 @@ class Sin(Node):
             aV = self.a.eval(at)
             return np.cos(aV)
         
+    def getVariables(self):
+        return [self.a]
+
 
 class Exp(Node):
     def __init__(self, a):
@@ -88,6 +104,8 @@ class Exp(Node):
             aV = self.a.eval(at)
             return aV * np.exp(aV)
 
+    def getVariables(self):
+        return [self.a]
 
 class MatMul(Node):
     def __init__(self, a, b):
@@ -124,16 +142,39 @@ class MatMul(Node):
             aV = self.a.eval(at)
             return aV.T
     
+    def getVariables(self):
+        return [self.a, self.b]
         
+
+
+class Sum(Node):
+    def __init__(self, v):
+        self.v = v
+
+    def eval(self, at):
+        vVal = self.v.eval(at)
+        return np.sum(vVal)
+
+    def derivative(self, wrt, at):
+        if wrt == self.v:
+            vVal = self.v.eval(at)
+            return np.ones(vVal.shape)
+
+
+    def getVariables(self):
+        return [self.v]
+
 
 def eval(node, at):
     return node.eval(at)
 
 
-def derivative(node, wrt):
+def derivative(node, wrt, at):
+    if node == wrt:
+        return 1
     total = 0
-    for variable in node.variables:
-        #         undeep                      deep
-        partial = node.derivative(variable) * derivative(variable, wrt)
+    for variable in node.getVariables():
+        #         undeep                          deep
+        partial = node.derivative(variable, at) * derivative(variable, wrt, at)
         total += partial
     return total
