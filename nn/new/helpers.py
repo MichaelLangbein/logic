@@ -58,6 +58,14 @@ def matMul(A, B, nrDims=None):
         axesB = [i      for i in range(nrDims)]
     return np.tensordot(A, B, axes=(axesA, axesB))
 
+
+def crossMult(A, B):
+    if A.shape[-1] != 1:
+        A = np.reshape(A, A.shape + (1,))
+    if B.shape[0] != 1:
+        B = np.reshape(B, (1,) + B.shape)
+    return np.dot(A, B)
+
 def permutations(ranges):
     if len(ranges) == 0:
         return []

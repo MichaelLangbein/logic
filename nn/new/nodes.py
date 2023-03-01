@@ -1,6 +1,5 @@
 import numpy as np
-
-from helpers import eye, matMul
+from helpers import eye, matMul, crossMult
 
 
 class Node():
@@ -282,8 +281,7 @@ def Sigmoid(x):
 
 
 def Sse(observation, simulation):
-    obsVar = Constant(observation)
-    errors = Minus(obsVar, simulation)
+    errors = Minus(observation, simulation)
     squaredErrors = ScalarPower(errors, 2)
     sse = InnerSum(squaredErrors)
     return sse
@@ -300,7 +298,7 @@ def grad_s_x_through_op(op, x, at, grad_s_op):
     for v in op.getVariables():
         grad_s_v = op.grad_s_v(v, at, grad_s_op)
         if (type(v) is not Constant) and (grad_s_v.shape != v.eval(at).shape):
-            raise Exception(f"Something went wrong. grad_s_v must have shape {v.eval(at).shape} but has shape {grad_s_v.shape}.")
+            raise Exception(f"Something went wrong with {op.__class__.__name__}. grad_s_v must have shape {v.eval(at).shape} but has shape {grad_s_v.shape}.")
         grad_s_x_total += grad_s_x_through_op(v, x, at, grad_s_v)
     return grad_s_x_total
 

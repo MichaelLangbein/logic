@@ -1,127 +1,57 @@
 import unittest as ut
 import numpy as np
-from nn import FullyConnectedLayer
-from nodes import Variable
+from nodes import Variable, MatMul, Plus, Sigmoid, Sse, gradient
 
 
 
 class NnTests(ut.TestCase):
-    
    
     def testPrimitive(self):
 
-        # truth
-        input = np.array([1.5])
-        inputV = Variable(input)
-        wV = Variable(np.array([0.5]))
-        xV = Mult(wV, inputV)  # 0.75
-        outputV = Sigmoid(xV)  # 0.6792
-        output = outputV.eval()
-        self.assertClose(output, np.array([0.6791787]))
+        i = Variable('i')
+        yObs = Variable('yObs')
 
-        # first prediction
-        layer = FullyConnectedLayer(1, 1)
-        layer.setI(inputV)
-        predictionV = layer.y()
-        errorV = SSE(predictionV, output)
-        error = errorV.eval()
-        dEdX = errorV.grad(layer.x())
-        self.assertNotEqual(dEdX, 0.0)
-        layer.updateParas(dEdX)
+        W1 = Variable('W1')
+        b1 = Variable('b1')
+        x1 = MatMul(W1, Plus(i, b1))
+        y1 = Sigmoid(x1)
 
-        # second prediction
-        prediction2V = layer.y()
-        error2V = SSE(prediction2V, output)
-        error2 = error2V.eval()
-        self.assertLess(error2, error)
+        W2 = Variable('W2')
+        b2 = Variable('b2')
+        x2 = MatMul(W2, Plus(y1, b2))
+        y2 = Sigmoid(x2)
 
+        e = Sse(yObs, y2)
 
-    def testLayerDimensions(self):
+        values = {
+            'i':    np.random.random([3]),
+            'b1':   np.random.random([3]),
+            'W1':   np.random.random([2, 3]),
+            'b2':   np.random.random([2]),
+            'W2':   np.random.random([2, 2]),
+            'yObs': np.random.random([2])
+        }
 
-        input = np.array([1.0, 2.0, 3.0])
-        trueVal = np.array([2.1])
-        
-        # Setup
-        layer0 = FullyConnectedLayer(3, 3)
-        layer1 = FullyConnectedLayer(3, 2)
-        layer2 = FullyConnectedLayer(2, 1)
+        e0 = e.eval(values)
 
-        layer0.setI(Variable(input))
-        layer1.setI(layer0.y())
-        layer2.setI(layer1.y())
-        E = SSE(layer2.y(), trueVal)
+        alpha = 0.01
+        for i in range(30):
+            dedW2 = gradient(e, W2, values)
+            dedb2 = gradient(e, x2, values)
+            dedW1 = gradient(e, W1, values)
+            dedb1 = gradient(e, x1, values)
+            values['W2'] -= alpha * dedW2
+            values['b2'] -= alpha * dedb2
+            values['W1'] -= alpha * dedW1
+            values['b1'] -= alpha * dedb1
 
+            ei = e.eval(values)
+            print(f"{i/30} - {ei}")
 
-        # Backprop last layer
-        dE_dx_2 = E.grad(layer2.x())
-        layer2.updateParas(dE_dx_2)
-        #
-        self.assertEqual(dE_dx_2.shape, (1,))
+        self.assertLess(ei, e0)
 
-
-        # Backprop middle layer
-        dx_2_dx_1 = layer2.x().grad(layer1.x())
-        dE_dx_1 = dE_dx_2 @ dx_2_dx_1
-        layer1.updateParas(dE_dx_1)
-        #
-        self.assertEqual(dE_dx_1.shape, (2,))
-        self.assertEqual(dE_dx_2.shape, (1,))
-        self.assertEqual(dx_2_dx_1.shape, (1,2))
-
-
-        # Backprop first layer
-        dx_1_dx_0 = layer1.x().grad(layer0.x())
-        dE_dx_0 = dE_dx_1 @ dx_1_dx_0
-        layer0.updateParas(dE_dx_0)
-        #
-        self.assertEqual(dE_dx_0.shape, (3,))
-        self.assertEqual(dE_dx_1.shape, (2,))
-        self.assertEqual(dx_1_dx_0.shape, (2,3))
         
 
-    def testSimplestNet(self):
-        layers = [FullyConnectedLayer(1, 1)]
-        net = NN(layers)
-        
-        nrSamples = 100
-        nrValidation = 10
-        inputsTraining = np.random.random((1, nrSamples))
-        outputsTraining = inputsTraining * 0.3
-        inputsValidation = np.random.random((1, nrValidation))
-        outputsValidation = inputsValidation * 0.3
-
-        sseInitial = validation(net, inputsValidation, outputsValidation)
-        training(net, inputsTraining, outputsTraining, 5, 5)
-        sseFinal = validation(net, inputsValidation, outputsValidation)
-        
-        self.assertLess(sseFinal, sseInitial)
-
-
-    def testSimpleNet(self):
-
-        def createRandomData(nrSamples, nrI=3):
-            inputs = np.random.random((nrI, nrSamples))
-            outputs = np.array([inputs[0,:] + inputs[1,:] * inputs[2,:] / 3])
-            return inputs, outputs
-
-        layers = [FullyConnectedLayer(3, 3), FullyConnectedLayer(3, 2), FullyConnectedLayer(2, 1)]
-        net = NN(layers)
-
-        nrSamples = 100
-        nrSplVal = 5
-        inputs, outputs = createRandomData(nrSamples)
-        inputsVal, outputsVal = createRandomData(nrSplVal)
-
-        sseInitial = validation(net, inputsVal, outputsVal)
-        training(net, inputs, outputs, 5, 5)
-        sseFinal = validation(net, inputsVal, outputsVal)
-        
-        self.assertLess(sseFinal, sseInitial)
-
-    
-
-
-    
 
 
 if __name__ == '__main__':

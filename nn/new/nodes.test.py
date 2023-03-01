@@ -67,11 +67,12 @@ class NodeTests(ut.TestCase):
 
         i = Variable('i')
         W = Variable('W')
+        yObs = Variable('yObs')
         x = MatMul(W, i)
         y = Sigmoid(x)
-        sse = Sse(yTrue, y)
+        sse = Sse(yObs, y)
 
-        at = { 'i': iTrue, 'W': WSim }
+        at = { 'i': iTrue, 'W': WSim, 'yObs': yTrue }
         outputEVal = y.eval(at)
         np.testing.assert_array_almost_equal(outputEVal, ySim)
         sseEval = sse.eval(at)
