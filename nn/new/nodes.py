@@ -1,13 +1,19 @@
-from abc import ABC
 import numpy as np
 
 from helpers import matMul
 
 
-class Node(ABC):
+class Node():
     def eval(self, at):
         pass
-    def derivative(self, wrt, at):
+    def propagateGrad(self, x, at, grad_s_node):
+        """
+            returns grad_s_x 
+            by calculating grad_s_node @ grad_node_x
+            x must be a variable of the node;
+            i.e. grad_node_x must be a shallow derivative.
+            otherwise returns None
+        """
         pass
     def getVariables(self):
         pass
@@ -26,8 +32,8 @@ class Constant(Node):
     def eval(self, at):
         return self.value
     
-    def derivative(self, wrt, at):
-        return np.array(0.0)
+    def propagateGrad(self, x, at, grad_s_node):
+        return np.zeros(grad_s_node.shape)
 
     def getVariables(self):
         return []
@@ -44,10 +50,9 @@ class Variable(Node):
         if self.name in at:
             return at[self.name]
         
-    def derivative(self, wrt, at):
-        if self.name == wrt.name:
-            return np.array(1.0)
-        return np.array(0.0)
+    def propagateGrad(self, x, at, grad_s_node):
+        if self == x:
+            return grad_s_node
     
     def getVariables(self):
         return []
@@ -56,7 +61,7 @@ class Variable(Node):
         return f"{self.name}"
 
 
-class Add(Node):
+class Plus(Node):
     def __init__(self, a, b):
         self.a = a
         self.b = b
@@ -64,14 +69,36 @@ class Add(Node):
     def eval(self, at):
         return self.a.eval(at) + self.b.eval(at)
     
-    def derivative(self, wrt, at):
-        return np.array(1.0)
+    def propagateGrad(self, x, at, grad_s_node):
+        if x == self.a or x == self.b:
+            return grad_s_node
 
     def getVariables(self):
         return [self.a, self.b]
         
     def __str__(self):
         return f"({self.a} + {self.b})"
+    
+
+class Minus(Node):
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
+    def eval(self, at):
+        return self.a.eval(at) - self.b.eval(at)
+    
+    def propagateGrad(self, x, at, grad_s_node):
+        if x == self.a:
+            return grad_s_node
+        if x == self.b:
+            return -grad_s_node
+
+    def getVariables(self):
+        return [self.a, self.b]
+        
+    def __str__(self):
+        return f"({self.a} - {self.b})"
     
    
 class Mult(Node):
@@ -82,11 +109,11 @@ class Mult(Node):
     def eval(self, at):
         return self.a.eval(at) * self.b.eval(at)
     
-    def derivative(self, wrt, at):
-        if wrt == self.a:
-            return self.b.eval(at)
-        if wrt == self.b:
-            return self.a.eval(at)
+    def propagateGrad(self, x, at, grad_s_node):
+        if x == self.a:
+            return grad_s_node @ self.b.eval(at)
+        if x == self.b:
+            return grad_s_node @ self.a.eval(at)
         
     def getVariables(self):
         return [self.a, self.b]
@@ -103,10 +130,10 @@ class Sin(Node):
         aV = self.a.eval(at)
         return np.sin(aV)
     
-    def derivative(self, wrt, at):
-        if wrt == self.a:
+    def propagateGrad(self, x, at, grad_s_node):
+        if x == self.a:
             aV = self.a.eval(at)
-            return np.cos(aV)
+            return grad_s_node @ np.cos(aV)
         
     def getVariables(self):
         return [self.a]
@@ -123,10 +150,10 @@ class Exp(Node):
         aV = self.a.eval(at)
         return np.exp(aV)
     
-    def derivative(self, wrt, at):
-        if wrt == self.a:
+    def propagateGrad(self, x, at, grad_s_node):
+        if x == self.a:
             aV = self.a.eval(at)
-            return aV * np.exp(aV)
+            return grad_s_node @ (aV * np.exp(aV))
 
     def getVariables(self):
         return [self.a]
@@ -145,30 +172,30 @@ class MatMul(Node):
         bV = self.b.eval(at)
         return aV @ bV
     
-    def derivative(self, wrt, at):
+    def propagateGrad(self, x, at, grad_s_node):
         """
           Important:
           ----------
 
-          this assumes that  this expression ` U=A@B `
-          is part of a larger expression ` f(U) `, which is scalar valued.
+          this assumes that  this expression ` Node=A@B `
+          is part of a larger expression ` f(Node) `, which is scalar valued.
           If that's the case, then
 
-          `` df/dA = df/dU * dU/dA = df/dU * B^T ``
+          `` df/dA = df/dNode * dNode/dA = df/dNode * B^T ``
 
           and
 
-          `` df/dB = df/dU * dU/dB = df/dU * A^T ``
+          `` df/dB = df/dNode * dNode/dB = A^T * df/dNode``
           
           https://mostafa-samir.github.io/auto-diff-pt2/
         """
 
-        if wrt == self.a:
+        if x == self.a:
             bV = self.b.eval(at)
-            return bV.T
-        if wrt == self.b:
+            return matMul(grad_s_node, bV.T)
+        if x == self.b:
             aV = self.a.eval(at)
-            return aV.T
+            return matMul(aV.T, grad_s_node)
     
     def getVariables(self):
         return [self.a, self.b]
@@ -177,7 +204,7 @@ class MatMul(Node):
         return f"({self.a} @ {self.b})"
 
 
-class Sum(Node):
+class InnerSum(Node):
     def __init__(self, v):
         self.v = v
 
@@ -185,10 +212,11 @@ class Sum(Node):
         vVal = self.v.eval(at)
         return np.sum(vVal)
 
-    def derivative(self, wrt, at):
-        if wrt == self.v:
+    def propagateGrad(self, x, at, grad_s_node):
+        if x == self.v:
             vVal = self.v.eval(at)
-            return np.ones(vVal.shape)
+            grad_node_x = np.ones(vVal.shape)
+            return grad_s_node * grad_node_x
 
     def getVariables(self):
         return [self.v]
@@ -197,33 +225,67 @@ class Sum(Node):
         return f"sum({self.v})"
 
 
+class ScalarProd(Node):
+    def __init__(self, scalar, a):
+        self.a = a
+        self.scalar = scalar
 
-def __shape(undeep, total):
-    targetShape = total.shape
-    sourceShape = undeep.shape
-    newShape = sourceShape + targetShape
-    return newShape
+    def eval(self, at):
+        aVal = self.a.eval(at)
+        aTimesS = aVal * self.scalar
+        return aTimesS
+    
+    def propagateGrad(self, x, at, grad_s_node):
+        if x == self.a:
+            return self.scalar * grad_s_node
+
+    def getVariables(self):
+        return [self.a]
+    
+    def __str__(self):
+        return f"({self.scalar} * {self.a})"
 
 
-def __derivative(node, wrt, at, shape):
-    print(f"Derivative d {node} / d {wrt}")
-    total = np.zeros(shape)
-    for variable in node.getVariables():
-        if type(variable) is Constant:
-            continue
-        if variable == wrt:
-            total += node.derivative(variable, at).T
-        else:
-            undeep = node.derivative(variable, at) 
-            deep = __derivative(variable, wrt, at, __shape(undeep, total))
-            partial = matMul(undeep, deep)
-            total += partial
-    return total
+class ScalarPower(Node):
+    def __init__(self, a, scalar):
+        self.a = a
+        self.scalar = scalar
 
-def derivative(node, wrt, at):
-    nodeV = node.eval(at)
+    def eval(self, at):
+        aVal = self.a.eval(at)
+        aPowS = np.power(aVal, self.scalar)
+        return aPowS
+    
+    def propagateGrad(self, x, at, grad_s_node):
+        if x == self.a:
+            aVal = self.a.eval(at)
+            singleValues = self.scalar * np.power(aVal, self.scalar - 1)
+            grad_node_x = np.eye(len(singleValues)) * singleValues
+            return grad_s_node @ grad_node_x
+
+    def getVariables(self):
+        return [self.a]
+    
+    def __str__(self):
+        return f"{self.a}^{self.scalar}"
+
+
+
+# @memoized()
+def __grad_s_x(op, x, at, grad_s_op):
+    if op == x:
+        return grad_s_op
+    grad_s_x_total = 0
+    for v in op.getVariables():
+        grad_s_v = op.propagateGrad(v, at, grad_s_op)
+        grad_s_x_total += __grad_s_x(v, x, at, grad_s_v)
+    return grad_s_x_total
+
+
+
+def gradient(s, x, at):
+    nodeV = s.eval(at)
     if nodeV.shape != ():
-        raise Error(f"Can only do derivatives on scalar-valued expressions. This expression has shape {nodeV.shape}: {nodeV}")
-    wrtV = wrt.eval(at)
-    d_node_d_wrt = __derivative(node, wrt, at, wrtV.shape)
-    return d_node_d_wrt
+        raise Error(f"Can only do gradients on scalar-valued expressions. This expression has shape {nodeV.shape}: {nodeV}")
+    grad_node_x = __grad_s_x(s, x, at, np.array(1.0))
+    return grad_node_x

@@ -45,6 +45,11 @@ def matMul(A, B, nrDims=None):
         lA = len(A.shape) - 1
         axesA = [lA - i for i in range(nrDims)]
         axesB = [i      for i in range(nrDims)]
+    if axesA == [] and axesB == []:
+        A = np.reshape(A, A.shape + (1,))
+        B = np.reshape(B, (1,) + B.shape)
+        axesA = [len(A.shape)]
+        axesB = [0]
     return np.tensordot(A, B, axes=(axesA, axesB))
 
 

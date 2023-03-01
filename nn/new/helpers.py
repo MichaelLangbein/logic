@@ -29,6 +29,18 @@ def isZero(something):
     return False
 
 def matMul(A, B, nrDims=None):
+    if type(A) is not np.ndarray:
+        if A == 0:
+            return 0
+        if A == 1:
+            return B
+        A = np.array(A)
+    if type(B) is not np.ndarray:
+        if B == 1:
+            return A
+        if B == 0:
+            return 0
+        B = np.array(B)
     axesA = []
     axesB = []
     if not nrDims:
