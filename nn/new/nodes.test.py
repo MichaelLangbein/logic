@@ -50,6 +50,10 @@ class NodeTests(ut.TestCase):
         self.assertEqual(grad_s_x.shape, xVal.shape)
         np.testing.assert_array_almost_equal(grad_s_x, np.array([3.0, 1.0, 2.0]))
 
+        grad_s_W = gradient(s, W, at)
+        self.assertEqual(grad_s_W.shape, WVal.shape)
+        np.testing.assert_array_almost_equal(grad_s_W, np.array([xVal, xVal]))
+
     
 
 

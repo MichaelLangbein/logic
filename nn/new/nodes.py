@@ -1,17 +1,17 @@
 import numpy as np
 
-from helpers import matMul
+from helpers import eye, matMul
 
 
 class Node():
     def eval(self, at):
         pass
-    def propagateGrad(self, x, at, grad_s_node):
+    def grad_s_v(self, v, at, grad_s_node):
         """
-            returns grad_s_x 
-            by calculating grad_s_node @ grad_node_x
-            x must be a variable of the node;
-            i.e. grad_node_x must be a shallow derivative.
+            returns grad_s_v 
+            by calculating grad_s_node @ grad_node_v
+            v must be a variable of the node;
+            i.e. grad_node_v must be a shallow gradient.
             otherwise returns None
         """
         pass
@@ -32,7 +32,7 @@ class Constant(Node):
     def eval(self, at):
         return self.value
     
-    def propagateGrad(self, x, at, grad_s_node):
+    def grad_s_v(self, v, at, grad_s_node):
         return np.zeros(grad_s_node.shape)
 
     def getVariables(self):
@@ -50,7 +50,7 @@ class Variable(Node):
         if self.name in at:
             return at[self.name]
         
-    def propagateGrad(self, x, at, grad_s_node):
+    def grad_s_v(self, v, at, grad_s_node):
         if self == x:
             return grad_s_node
     
@@ -69,8 +69,8 @@ class Plus(Node):
     def eval(self, at):
         return self.a.eval(at) + self.b.eval(at)
     
-    def propagateGrad(self, x, at, grad_s_node):
-        if x == self.a or x == self.b:
+    def grad_s_v(self, v, at, grad_s_node):
+        if v == self.a or v == self.b:
             return grad_s_node
 
     def getVariables(self):
@@ -88,10 +88,10 @@ class Minus(Node):
     def eval(self, at):
         return self.a.eval(at) - self.b.eval(at)
     
-    def propagateGrad(self, x, at, grad_s_node):
-        if x == self.a:
+    def grad_s_v(self, v, at, grad_s_node):
+        if v == self.a:
             return grad_s_node
-        if x == self.b:
+        if v == self.b:
             return -grad_s_node
 
     def getVariables(self):
@@ -109,10 +109,10 @@ class Mult(Node):
     def eval(self, at):
         return self.a.eval(at) * self.b.eval(at)
     
-    def propagateGrad(self, x, at, grad_s_node):
-        if x == self.a:
+    def grad_s_v(self, v, at, grad_s_node):
+        if v == self.a:
             return grad_s_node @ self.b.eval(at)
-        if x == self.b:
+        if v == self.b:
             return grad_s_node @ self.a.eval(at)
         
     def getVariables(self):
@@ -130,8 +130,8 @@ class Sin(Node):
         aV = self.a.eval(at)
         return np.sin(aV)
     
-    def propagateGrad(self, x, at, grad_s_node):
-        if x == self.a:
+    def grad_s_v(self, v, at, grad_s_node):
+        if v == self.a:
             aV = self.a.eval(at)
             return grad_s_node @ np.cos(aV)
         
@@ -150,10 +150,11 @@ class Exp(Node):
         aV = self.a.eval(at)
         return np.exp(aV)
     
-    def propagateGrad(self, x, at, grad_s_node):
-        if x == self.a:
+    def grad_s_v(self, v, at, grad_s_node):
+        if v == self.a:
             aV = self.a.eval(at)
-            return grad_s_node @ (aV * np.exp(aV))
+            grad_node_v = np.eye(len(aV)) * (aV * np.exp(aV))
+            return grad_s_node @ grad_node_v
 
     def getVariables(self):
         return [self.a]
@@ -172,7 +173,7 @@ class MatMul(Node):
         bV = self.b.eval(at)
         return aV @ bV
     
-    def propagateGrad(self, x, at, grad_s_node):
+    def grad_s_v(self, v, at, grad_s_node):
         """
           Important:
           ----------
@@ -190,10 +191,10 @@ class MatMul(Node):
           https://mostafa-samir.github.io/auto-diff-pt2/
         """
 
-        if x == self.a:
+        if v == self.a:
             bV = self.b.eval(at)
             return matMul(grad_s_node, bV.T)
-        if x == self.b:
+        if v == self.b:
             aV = self.a.eval(at)
             return matMul(aV.T, grad_s_node)
     
@@ -212,11 +213,11 @@ class InnerSum(Node):
         vVal = self.v.eval(at)
         return np.sum(vVal)
 
-    def propagateGrad(self, x, at, grad_s_node):
-        if x == self.v:
+    def grad_s_v(self, v, at, grad_s_node):
+        if v == self.v:
             vVal = self.v.eval(at)
-            grad_node_x = np.ones(vVal.shape)
-            return grad_s_node * grad_node_x
+            grad_node_v = np.ones(vVal.shape)
+            return grad_s_node * grad_node_v
 
     def getVariables(self):
         return [self.v]
@@ -235,8 +236,8 @@ class ScalarProd(Node):
         aTimesS = aVal * self.scalar
         return aTimesS
     
-    def propagateGrad(self, x, at, grad_s_node):
-        if x == self.a:
+    def grad_s_v(self, v, at, grad_s_node):
+        if v == self.a:
             return self.scalar * grad_s_node
 
     def getVariables(self):
@@ -256,8 +257,8 @@ class ScalarPower(Node):
         aPowS = np.power(aVal, self.scalar)
         return aPowS
     
-    def propagateGrad(self, x, at, grad_s_node):
-        if x == self.a:
+    def grad_s_v(self, v, at, grad_s_node):
+        if v == self.a:
             aVal = self.a.eval(at)
             singleValues = self.scalar * np.power(aVal, self.scalar - 1)
             grad_node_x = np.eye(len(singleValues)) * singleValues
@@ -272,20 +273,22 @@ class ScalarPower(Node):
 
 
 # @memoized()
-def __grad_s_x(op, x, at, grad_s_op):
+def grad_s_x_through_op(op, x, at, grad_s_op):
     if op == x:
         return grad_s_op
     grad_s_x_total = 0
     for v in op.getVariables():
-        grad_s_v = op.propagateGrad(v, at, grad_s_op)
-        grad_s_x_total += __grad_s_x(v, x, at, grad_s_v)
+        grad_s_v = op.grad_s_v(v, at, grad_s_op)
+        if (type(v) is not Constant) and (grad_s_v.shape != v.eval(at).shape):
+            raise Exception(f"Something went wrong. grad_s_v must have shape {v.eval(at).shape} but has shape {grad_s_v.shape}.")
+        grad_s_x_total += grad_s_x_through_op(v, x, at, grad_s_v)
     return grad_s_x_total
 
 
 
-def gradient(s, x, at):
-    nodeV = s.eval(at)
-    if nodeV.shape != ():
-        raise Error(f"Can only do gradients on scalar-valued expressions. This expression has shape {nodeV.shape}: {nodeV}")
-    grad_node_x = __grad_s_x(s, x, at, np.array(1.0))
-    return grad_node_x
+def gradient(op, x, at):
+    opV = op.eval(at)
+    if opV.shape != ():
+        raise Exception(f"Can only do gradients on scalar-valued expressions. This expression has shape {opV.shape}: {opV}")
+    grad_op_x_Val = grad_s_x_through_op(op, x, at, np.array(1.0))
+    return grad_op_x_Val

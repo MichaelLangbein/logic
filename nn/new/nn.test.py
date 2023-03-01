@@ -1,12 +1,13 @@
 import unittest as ut
 import numpy as np
 from nn import Sigmoid, Sse
-from nodes import MatMul, Variable, gradient
+from nodes import InnerSum, MatMul, Variable, gradient
 
 
 
 class NnTests(ut.TestCase):
     
+
     def testBasics(self):
         iTrue = np.array([1, 2, 3])
         WTrue = np.array([[1, 0, 2], [2, 1, 0]])
