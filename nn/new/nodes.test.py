@@ -1,5 +1,5 @@
 import unittest as ut
-from nodes import Constant, Variable, Sin, Plus, Mult, MatMul, Exp, InnerSum, gradient
+from nodes import Constant, Variable, Plus, Sse, MatMul, Sigmoid, InnerSum, gradient
 import numpy as np
 
 
@@ -53,6 +53,34 @@ class NodeTests(ut.TestCase):
         grad_s_W = gradient(s, W, at)
         self.assertEqual(grad_s_W.shape, WVal.shape)
         np.testing.assert_array_almost_equal(grad_s_W, np.array([xVal, xVal]))
+
+
+    def testSigmoidAndSse(self):
+        iTrue = np.array([1, 2, 3])
+        WTrue = np.array([[1, 0, 2], [2, 1, 0]])
+        WSim  = np.array([[1, 1, 1], [1, 1, 1]])
+        xTrue = np.dot(WTrue, iTrue)
+        yTrue = 1.0 / (1.0 + np.exp(-xTrue))
+        xSim  = np.dot(WSim, iTrue)
+        ySim  = 1.0 / (1.0 + np.exp(-xSim))
+        sseTrue = np.dot(ySim - yTrue, ySim - yTrue)
+
+        i = Variable('i')
+        W = Variable('W')
+        x = MatMul(W, i)
+        y = Sigmoid(x)
+        sse = Sse(yTrue, y)
+
+        at = { 'i': iTrue, 'W': WSim }
+        outputEVal = y.eval(at)
+        np.testing.assert_array_almost_equal(outputEVal, ySim)
+        sseEval = sse.eval(at)
+        np.testing.assert_array_almost_equal(sseEval, sseTrue)
+
+        grad_e_i = gradient(sse, i, at)
+        self.assertEqual(grad_e_i.shape, iTrue.shape)
+        grad_e_W = gradient(sse, W, at)
+        self.assertEqual(grad_e_W.shape, WTrue.shape)
 
     
 
