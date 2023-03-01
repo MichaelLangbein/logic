@@ -1,5 +1,5 @@
 import unittest as ut
-from nodes import Constant, Variable, derivative, eval, Sin, Add, Mult, MatMul, Exp, Sum
+from nodes import Constant, Variable, derivative, Sin, Add, Mult, MatMul, Exp, Sum
 import numpy as np
 
 
@@ -7,18 +7,18 @@ class NodeTests(ut.TestCase):
     
     def testEval(self):
         var = Variable('x')
-        val = var.eval({'x': 3.0})
-        self.assertEqual(val, 3.0)
+        val = var.eval({'x': np.array(3.0)})
+        self.assertEqual(val, np.array(3.0))
 
     def testAdd(self):
-        var = Variable('x')
+        x = Variable('x')
         two = Constant(2)
-        sum = Add(var, two)
-        v0 = { 'x': 3 }
+        sum = Add(x, two)
+        v0 = { 'x': np.array(3) }
         sumVal = sum.eval(v0)
-        self.assertEqual(sumVal, 5)
+        self.assertEqual(sumVal, np.array(5))
 
-        d_sum_d_x = derivative(sum, var, v0)
+        d_sum_d_x = derivative(sum, x, v0)
         self.assertEqual(d_sum_d_x, 1)
 
     def testMatMul(self):
@@ -37,7 +37,7 @@ class NodeTests(ut.TestCase):
 
         d_s_d_y = derivative(s, y, at)
         d_s_d_x = derivative(s, x, at)
-        self.assertAlmostEqual(d_s_d_x, d_s_d_y @ at['W'].T)
+        np.testing.assert_array_almost_equal(d_s_d_x, d_s_d_y @ at['W'])
 
     
 

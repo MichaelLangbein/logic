@@ -1,6 +1,8 @@
 from abc import ABC
 import numpy as np
 
+from helpers import matMul
+
 
 class Node(ABC):
     def eval(self, at):
@@ -9,20 +11,29 @@ class Node(ABC):
         pass
     def getVariables(self):
         pass
+    def __str__(self):
+        pass
+    def __repr__(self):
+        return self.__str__()
 
 
 class Constant(Node):
     def __init__(self, value):
+        if not type(value) is np.ndarray:
+            value = np.array(value)
         self.value = value
 
     def eval(self, at):
         return self.value
     
     def derivative(self, wrt, at):
-        return 0
+        return np.array(0.0)
 
     def getVariables(self):
         return []
+
+    def __str__(self):
+        return f"{self.value}"
 
 
 class Variable(Node):
@@ -35,11 +46,14 @@ class Variable(Node):
         
     def derivative(self, wrt, at):
         if self.name == wrt.name:
-            return 1
-        return 0
+            return np.array(1.0)
+        return np.array(0.0)
     
     def getVariables(self):
-        return [self]
+        return []
+    
+    def __str__(self):
+        return f"{self.name}"
 
 
 class Add(Node):
@@ -51,10 +65,14 @@ class Add(Node):
         return self.a.eval(at) + self.b.eval(at)
     
     def derivative(self, wrt, at):
-        return 1
+        return np.array(1.0)
 
     def getVariables(self):
         return [self.a, self.b]
+        
+    def __str__(self):
+        return f"({self.a} + {self.b})"
+    
    
 class Mult(Node):
     def __init__(self, a, b):
@@ -72,6 +90,9 @@ class Mult(Node):
         
     def getVariables(self):
         return [self.a, self.b]
+    
+    def __str__(self):
+        return f"({self.a} * {self.b})"
 
 
 class Sin(Node):
@@ -90,6 +111,9 @@ class Sin(Node):
     def getVariables(self):
         return [self.a]
 
+    def __str__(self):
+        return f"sin({self.a})"
+
 
 class Exp(Node):
     def __init__(self, a):
@@ -106,6 +130,10 @@ class Exp(Node):
 
     def getVariables(self):
         return [self.a]
+    
+    def __str__(self):
+        return f"exp({self.a})"
+
 
 class MatMul(Node):
     def __init__(self, a, b):
@@ -145,6 +173,8 @@ class MatMul(Node):
     def getVariables(self):
         return [self.a, self.b]
         
+    def __str__(self):
+        return f"({self.a} @ {self.b})"
 
 
 class Sum(Node):
@@ -160,21 +190,40 @@ class Sum(Node):
             vVal = self.v.eval(at)
             return np.ones(vVal.shape)
 
-
     def getVariables(self):
         return [self.v]
+    
+    def __str__(self):
+        return f"sum({self.v})"
 
 
-def eval(node, at):
-    return node.eval(at)
 
+def __shape(undeep, total):
+    targetShape = total.shape
+    sourceShape = undeep.shape
+    newShape = sourceShape + targetShape
+    return newShape
+
+
+def __derivative(node, wrt, at, shape):
+    print(f"Derivative d {node} / d {wrt}")
+    total = np.zeros(shape)
+    for variable in node.getVariables():
+        if type(variable) is Constant:
+            continue
+        if variable == wrt:
+            total += node.derivative(variable, at).T
+        else:
+            undeep = node.derivative(variable, at) 
+            deep = __derivative(variable, wrt, at, __shape(undeep, total))
+            partial = matMul(undeep, deep)
+            total += partial
+    return total
 
 def derivative(node, wrt, at):
-    if node == wrt:
-        return 1
-    total = 0
-    for variable in node.getVariables():
-        #         undeep                          deep
-        partial = node.derivative(variable, at) * derivative(variable, wrt, at)
-        total += partial
-    return total
+    nodeV = node.eval(at)
+    if nodeV.shape != ():
+        raise Error(f"Can only do derivatives on scalar-valued expressions. This expression has shape {nodeV.shape}: {nodeV}")
+    wrtV = wrt.eval(at)
+    d_node_d_wrt = __derivative(node, wrt, at, wrtV.shape)
+    return d_node_d_wrt
