@@ -10,7 +10,7 @@ set -o pipefail  # don't hide errors within pipes
 conda create --name tf python=3.9
 conda deactivate
 conda activate tf
-conda install -y -c conda-forge cudatoolkit=11.2.2 cudnn=8.1.0
+conda install -y -c conda-forge cudatoolkit=11.2.2 cudatoolkit-dev cudnn=8.1.0 
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
 mkdir -p $CONDA_PREFIX/etc/conda/activate.d
@@ -21,7 +21,7 @@ pip install tensorflow==2.11.*
 
 
 # Install NVCC
-conda install -y -c nvidia cuda-nvcc=11.3.58
+#conda install -y -c nvidia cuda-nvcc=11.3.58
 # Configure the XLA cuda directory
 mkdir -p $CONDA_PREFIX/etc/conda/activate.d
 printf 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/\nexport XLA_FLAGS=--xla_gpu_cuda_data_dir=$CONDA_PREFIX/lib/\n' > $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
