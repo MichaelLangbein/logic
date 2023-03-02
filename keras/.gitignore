@@ -1,5 +1,7 @@
 helpers/downloads/*
+helpers/preprocessed/*
 dcgan/celeba_gan/*
+dcgan/results/*
 
 
 # Byte-compiled / optimized / DLL files

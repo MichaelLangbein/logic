@@ -19,11 +19,12 @@ from zipfile import ZipFile
 # with ZipFile("celeba_gan/data.zip", "r") as zipobj:
 #     zipobj.extractall("celeba_gan")
 
-
+DATADIR = os.path.join(os.getcwd(), '..', 'helpers', 'preprocessed')
+OUTDIR = os.path.join(os.getcwd(), 'results')
 
 # %%
 dataset = keras.utils.image_dataset_from_directory(
-    "celeba_gan", label_mode=None, image_size=(64, 64), batch_size=16
+    DATADIR, label_mode=None, image_size=(64, 64), batch_size=16
 )
 dataset = dataset.map(lambda x: x / 255.0)
 
@@ -160,11 +161,11 @@ class GANMonitor(keras.callbacks.Callback):
         generated_images.numpy()
         for i in range(self.num_img):
             img = keras.preprocessing.image.array_to_img(generated_images[i])
-            img.save("generated_img_%03d_%d.png" % (epoch, i))
+            img.save(f"{OUTDIR}/generated/generated_img_%03d_%d.png" % (epoch, i))
 
 
 #%%
-epochs = 1  # In practice, use ~100 epochs
+epochs = 1000  # In practice, use ~100 epochs
 
 gan = GAN(discriminator=discriminator, generator=generator, latent_dim=latent_dim)
 gan.compile(
@@ -173,8 +174,22 @@ gan.compile(
     loss_fn=keras.losses.BinaryCrossentropy(),
 )
 
-gan.fit(
+history = gan.fit(
     dataset, epochs=epochs, callbacks=[GANMonitor(num_img=10, latent_dim=latent_dim)]
 )
 
+# %%
+generator.save(f"{OUTDIR}/generator_saved/")
+discriminator.save(f"{OUTDIR}/discriminator_saved/")
+
+# %%
+import matplotlib.pyplot as plt
+
+plt.plot(history.history['g_loss'])
+plt.plot(history.history['d_loss'])
+plt.title('loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['generator', 'discriminator'], loc='upper right')
+plt.show()
 # %%

@@ -37,3 +37,6 @@ python3 -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'
 
 
 conda install -y ipykernel matplotlib
+
+
+conda env export --no-builds | grep -v "prefix" > environment.yml
