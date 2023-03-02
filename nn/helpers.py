@@ -28,11 +28,22 @@ def isZero(something):
         return True
     return False
 
-
 def matMul(A, B, nrDims=None):
+    if type(A) is not np.ndarray:
+        if A == 0:
+            return 0
+        if A == 1:
+            return B
+        A = np.array(A)
+    if type(B) is not np.ndarray:
+        if B == 1:
+            return A
+        if B == 0:
+            return 0
+        B = np.array(B)
     axesA = []
     axesB = []
-    if nrDims is None:
+    if not nrDims:
         dimsA = [(i, v) for  (i, v) in enumerate(A.shape)]
         dimsB = [(i, v) for  (i, v) in enumerate(B.shape)]
         for (i, da), (j, db) in zip(reversed(dimsA), dimsB):
@@ -45,13 +56,15 @@ def matMul(A, B, nrDims=None):
         lA = len(A.shape) - 1
         axesA = [lA - i for i in range(nrDims)]
         axesB = [i      for i in range(nrDims)]
-    if axesA == [] and axesB == []:
-        A = np.reshape(A, A.shape + (1,))
-        B = np.reshape(B, (1,) + B.shape)
-        axesA = [len(A.shape)]
-        axesB = [0]
     return np.tensordot(A, B, axes=(axesA, axesB))
 
+
+def crossMult(A, B):
+    if A.shape[-1] != 1:
+        A = np.reshape(A, A.shape + (1,))
+    if B.shape[0] != 1:
+        B = np.reshape(B, (1,) + B.shape)
+    return np.dot(A, B)
 
 def permutations(ranges):
     if len(ranges) == 0:
@@ -65,7 +78,6 @@ def permutations(ranges):
             result.append([i] + p)
     return result
 
-
 def diffBySelf(shape):
     if shape == ():
         return np.array(1)
@@ -74,3 +86,13 @@ def diffBySelf(shape):
     for indices in permutations(shape):
         out[*indices][*indices] = 1
     return out
+
+
+def memoized(func):
+    memory = {}
+    def memF(*args):
+        argString = "-".join(f"{args}")
+        if argString not in memory:
+            memory[argString] = func(*args)
+        return memory[argString]
+    return memF
