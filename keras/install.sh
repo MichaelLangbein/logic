@@ -21,7 +21,7 @@ pip install tensorflow==2.11.*
 
 
 # Install NVCC
-#conda install -y -c nvidia cuda-nvcc=11.3.58 #<-- this one seems to be already covered with cudatoolkit-dev
+# conda install -y -c nvidia cuda-nvcc=11.3.58 # <-- this one seems to be already covered with cudatoolkit-dev. But works better on mint.
 # The mere need for cudatoolkit-dev seems to only exist on ubuntu
 # Configure the XLA cuda directory
 mkdir -p $CONDA_PREFIX/etc/conda/activate.d

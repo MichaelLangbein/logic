@@ -1,5 +1,6 @@
 name: tf
 channels:
+  - nvidia
   - conda-forge
 dependencies:
   - _libgcc_mutex=0.1
@@ -10,20 +11,15 @@ dependencies:
   - backcall=0.2.0
   - backports=1.0
   - backports.functools_lru_cache=1.6.4
-  - beautifulsoup4=4.11.2
   - brotli=1.0.9
   - brotli-bin=1.0.9
-  - brotlipy=0.7.0
   - bzip2=1.0.8
   - ca-certificates=2022.12.7
   - cairo=1.16.0
-  - cffi=1.15.1
-  - colorama=0.4.6
   - comm=0.1.2
   - contourpy=1.0.7
-  - cryptography=39.0.1
+  - cuda-nvcc=11.3.58
   - cudatoolkit=11.2.2
-  - cudatoolkit-dev=11.6.0
   - cudnn=8.1.0.77
   - cycler=0.11.0
   - dbus=1.13.6
@@ -32,7 +28,6 @@ dependencies:
   - executing=1.2.0
   - expat=2.5.0
   - fftw=3.3.10
-  - filelock=3.9.0
   - font-ttf-dejavu-sans-mono=2.37
   - font-ttf-inconsolata=3.000
   - font-ttf-source-code-pro=2.038
@@ -42,7 +37,6 @@ dependencies:
   - fonts-conda-forge=1
   - fonttools=4.38.0
   - freetype=2.12.1
-  - gdown=4.6.4
   - gettext=0.21.1
   - glib=2.74.1
   - glib-tools=2.74.1
@@ -52,7 +46,6 @@ dependencies:
   - gstreamer-orc=0.4.33
   - harfbuzz=6.0.0
   - icu=70.1
-  - idna=3.4
   - importlib-metadata=6.0.0
   - importlib-resources=5.12.0
   - importlib_metadata=6.0.0
@@ -148,34 +141,27 @@ dependencies:
   - ptyprocess=0.7.0
   - pulseaudio=16.1
   - pure_eval=0.2.2
-  - pycparser=2.21
   - pygments=2.14.0
-  - pyopenssl=23.0.0
   - pyparsing=3.0.9
   - pyqt=5.15.7
   - pyqt5-sip=12.11.0
-  - pysocks=1.7.1
   - python=3.9.16
   - python-dateutil=2.8.2
   - python_abi=3.9
   - pyzmq=25.0.0
   - qt-main=5.15.8
   - readline=8.1.2
-  - requests=2.28.2
   - setuptools=67.4.0
   - sip=6.7.7
   - six=1.16.0
-  - soupsieve=2.3.2.post1
   - stack_data=0.6.2
   - tk=8.6.12
   - toml=0.10.2
   - tornado=6.2
-  - tqdm=4.64.1
   - traitlets=5.9.0
   - typing_extensions=4.4.0
   - tzdata=2022g
   - unicodedata2=15.0.0
-  - urllib3=1.26.14
   - wcwidth=0.2.6
   - wheel=0.38.4
   - xcb-util=0.4.0
@@ -200,36 +186,49 @@ dependencies:
   - zlib=1.2.13
   - zstd=1.5.2
   - pip:
-      - absl-py==1.4.0
-      - astunparse==1.6.3
-      - cachetools==5.3.0
-      - certifi==2022.12.7
-      - charset-normalizer==3.0.1
-      - flatbuffers==23.1.21
-      - gast==0.4.0
-      - google-auth==2.16.1
-      - google-auth-oauthlib==0.4.6
-      - google-pasta==0.2.0
-      - grpcio==1.51.3
-      - h5py==3.8.0
-      - keras==2.11.0
-      - libclang==15.0.6.1
-      - markdown==3.4.1
-      - markupsafe==2.1.2
-      - oauthlib==3.2.2
-      - opt-einsum==3.3.0
-      - protobuf==3.19.6
-      - pyasn1==0.4.8
-      - pyasn1-modules==0.2.8
-      - requests-oauthlib==1.3.1
-      - rsa==4.9
-      - tensorboard==2.11.2
-      - tensorboard-data-server==0.6.1
-      - tensorboard-plugin-wit==1.8.1
-      - tensorflow==2.11.0
-      - tensorflow-estimator==2.11.0
-      - tensorflow-io-gcs-filesystem==0.31.0
-      - termcolor==2.2.0
-      - typing-extensions==4.5.0
-      - werkzeug==2.2.3
-      - wrapt==1.15.0
+    - absl-py==1.4.0
+    - astunparse==1.6.3
+    - cachetools==5.3.0
+    - certifi==2022.12.7
+    - charset-normalizer==3.0.1
+    - click==8.1.3
+    - dm-tree==0.1.8
+    - etils==1.0.0
+    - flatbuffers==23.1.21
+    - gast==0.4.0
+    - google-auth==2.16.2
+    - google-auth-oauthlib==0.4.6
+    - google-pasta==0.2.0
+    - googleapis-common-protos==1.58.0
+    - grpcio==1.51.3
+    - h5py==3.8.0
+    - idna==3.4
+    - keras==2.11.0
+    - keras-cv==0.4.2
+    - libclang==15.0.6.1
+    - markdown==3.4.1
+    - markupsafe==2.1.2
+    - oauthlib==3.2.2
+    - opt-einsum==3.3.0
+    - promise==2.3
+    - protobuf==3.19.6
+    - pyasn1==0.4.8
+    - pyasn1-modules==0.2.8
+    - regex==2022.10.31
+    - requests==2.28.2
+    - requests-oauthlib==1.3.1
+    - rsa==4.9
+    - tensorboard==2.11.2
+    - tensorboard-data-server==0.6.1
+    - tensorboard-plugin-wit==1.8.1
+    - tensorflow==2.11.0
+    - tensorflow-datasets==4.8.3
+    - tensorflow-estimator==2.11.0
+    - tensorflow-io-gcs-filesystem==0.31.0
+    - tensorflow-metadata==1.12.0
+    - termcolor==2.2.0
+    - tqdm==4.64.1
+    - typing-extensions==4.5.0
+    - urllib3==1.26.14
+    - werkzeug==2.2.3
+    - wrapt==1.15.0

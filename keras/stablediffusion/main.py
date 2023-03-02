@@ -12,11 +12,15 @@ import matplotlib.pyplot as plt
 #%%
 keras.mixed_precision.set_global_policy("mixed_float16")
 
-
-#%%
 model = keras_cv.models.StableDiffusion(img_width=512, img_height=512, jit_compile=True)
 
-images = model.text_to_image("photograph of an astronaut riding a horse", batch_size=3)
+
+#%%
+images = model.text_to_image(
+    "a space filling curve of mathematical beauty stylized to look like a map",
+    negative_prompt="manual hand-painted",
+    batch_size=1
+)
 
 
 def plot_images(images):
@@ -30,3 +34,4 @@ def plot_images(images):
 plot_images(images)
 
 #%%
+model.
