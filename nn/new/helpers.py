@@ -86,3 +86,13 @@ def diffBySelf(shape):
     for indices in permutations(shape):
         out[*indices][*indices] = 1
     return out
+
+
+def memoized(func):
+    memory = {}
+    def memF(*args):
+        argString = "-".join(f"{args}")
+        if argString not in memory:
+            memory[argString] = func(*args)
+        return memory[argString]
+    return memF

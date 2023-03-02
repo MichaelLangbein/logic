@@ -1,5 +1,5 @@
 import numpy as np
-from helpers import eye, matMul, crossMult
+from helpers import eye, matMul, memoized
 
 
 class Node():
@@ -66,7 +66,7 @@ class Plus(Node):
         self.b = b
 
     def eval(self, at):
-        return self.a.eval(at) + self.b.eval(at)
+        return  eval(self.a, at) +  eval(self.b, at)
     
     def grad_s_v(self, v, at, grad_s_node):
         if v == self.a or v == self.b:
@@ -85,7 +85,7 @@ class Minus(Node):
         self.b = b
 
     def eval(self, at):
-        return self.a.eval(at) - self.b.eval(at)
+        return eval(self.a, at) - eval(self.b, at)
     
     def grad_s_v(self, v, at, grad_s_node):
         if v == self.a:
@@ -106,13 +106,13 @@ class Mult(Node):
         self.b = b
 
     def eval(self, at):
-        return self.a.eval(at) * self.b.eval(at)
+        return eval(self.a, at) * eval(self.b, at)
     
     def grad_s_v(self, v, at, grad_s_node):
         if v == self.a:
-            return grad_s_node @ self.b.eval(at)
+            return grad_s_node @ eval(self.b, at)
         if v == self.b:
-            return grad_s_node @ self.a.eval(at)
+            return grad_s_node @ eval(self.a, at)
         
     def getVariables(self):
         return [self.a, self.b]
@@ -126,12 +126,12 @@ class Sin(Node):
         self.a = a
 
     def eval(self, at):
-        aV = self.a.eval(at)
+        aV = eval(self.a, at)
         return np.sin(aV)
     
     def grad_s_v(self, v, at, grad_s_node):
         if v == self.a:
-            aV = self.a.eval(at)
+            aV = eval(self.a, at)
             return grad_s_node @ np.cos(aV)
         
     def getVariables(self):
@@ -146,12 +146,12 @@ class Exp(Node):
         self.a = a
 
     def eval(self, at):
-        aV = self.a.eval(at)
+        aV = eval(self.a, at)
         return np.exp(aV)
     
     def grad_s_v(self, v, at, grad_s_node):
         if v == self.a:
-            aV = self.a.eval(at)
+            aV = eval(self.a, at)
             grad_node_v = np.eye(len(aV)) * (aV * np.exp(aV))
             return grad_s_node @ grad_node_v
 
@@ -168,8 +168,8 @@ class MatMul(Node):
         self.b = b
 
     def eval(self, at):
-        aV = self.a.eval(at)
-        bV = self.b.eval(at)
+        aV = eval(self.a, at)
+        bV = eval(self.b, at)
         return aV @ bV
     
     def grad_s_v(self, v, at, grad_s_node):
@@ -190,12 +190,25 @@ class MatMul(Node):
           https://mostafa-samir.github.io/auto-diff-pt2/
         """
 
+        vVal = eval(v, at)
         if v == self.a:
-            bV = self.b.eval(at)
-            return matMul(grad_s_node, bV.T)
+            bV =  eval(self.b, at)
+            (a, b, nrDims) = self.__reshape(vVal, grad_s_node, bV.T)
+            return matMul(a, b, nrDims)
         if v == self.b:
-            aV = self.a.eval(at)
-            return matMul(aV.T, grad_s_node)
+            aV =  eval(self.a, at)
+            (a, b, nrDims) = self.__reshape(vVal, aV.T, grad_s_node)
+            return matMul(a, b, nrDims)
+        
+    def __reshape(self, target, a, b):
+        resultShape = a.shape[:-1] + b.shape[1:]
+        if resultShape == target.shape:
+            return (a, b, 1)
+        if len(resultShape) < len(target.shape):
+            a = np.reshape(a, a.shape + (1,))
+            b = np.reshape(b, (1,) + b.shape)
+            return self.__reshape(target, a, b)
+
     
     def getVariables(self):
         return [self.a, self.b]
@@ -209,12 +222,12 @@ class InnerSum(Node):
         self.v = v
 
     def eval(self, at):
-        vVal = self.v.eval(at)
+        vVal =  eval(self.v, at)
         return np.sum(vVal)
 
     def grad_s_v(self, v, at, grad_s_node):
         if v == self.v:
-            vVal = self.v.eval(at)
+            vVal =  eval(self.v, at)
             grad_node_v = np.ones(vVal.shape)
             return grad_s_node * grad_node_v
 
@@ -231,7 +244,7 @@ class ScalarProd(Node):
         self.scalar = scalar
 
     def eval(self, at):
-        aVal = self.a.eval(at)
+        aVal =  eval(self.a, at)
         aTimesS = aVal * self.scalar
         return aTimesS
     
@@ -252,13 +265,13 @@ class ScalarPower(Node):
         self.scalar = scalar
 
     def eval(self, at):
-        aVal = self.a.eval(at)
+        aVal =  eval(self.a, at)
         aPowS = np.power(aVal, self.scalar)
         return aPowS
     
     def grad_s_v(self, v, at, grad_s_node):
         if v == self.a:
-            aVal = self.a.eval(at)
+            aVal =  eval(self.a, at)
             singleValues = self.scalar * np.power(aVal, self.scalar - 1)
             grad_node_x = np.eye(len(singleValues)) * singleValues
             return grad_s_node @ grad_node_x
@@ -287,26 +300,31 @@ def Sse(observation, simulation):
     return sse
 
 
+@memoized
+def eval(op, at):
+    return op.eval(at)
 
 
-
-# @memoized()
+@memoized
 def grad_s_x_through_op(op, x, at, grad_s_op):
     if op == x:
         return grad_s_op
     grad_s_x_total = 0
     for v in op.getVariables():
         grad_s_v = op.grad_s_v(v, at, grad_s_op)
-        if (type(v) is not Constant) and (grad_s_v.shape != v.eval(at).shape):
-            raise Exception(f"Something went wrong with {op.__class__.__name__}. grad_s_v must have shape {v.eval(at).shape} but has shape {grad_s_v.shape}.")
+        if (type(v) is not Constant) and (grad_s_v.shape != eval(v, at).shape):
+            raise Exception(f"Something went wrong with {op.__class__.__name__}. grad_s_v must have shape {eval(v, at).shape} but has shape {grad_s_v.shape}.")
         grad_s_x_total += grad_s_x_through_op(v, x, at, grad_s_v)
     return grad_s_x_total
 
 
 
 def gradient(op, x, at):
-    opV = op.eval(at)
+    opV = eval(op, at)
     if opV.shape != ():
         raise Exception(f"Can only do gradients on scalar-valued expressions. This expression has shape {opV.shape}: {opV}")
     grad_op_x_Val = grad_s_x_through_op(op, x, at, np.array(1.0))
     return grad_op_x_Val
+
+
+
