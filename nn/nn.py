@@ -25,7 +25,7 @@ class Layer:
     def eval(self, at):
         return self.getOutput().eval(at)
     def getOutput(self):
-        pass
+        return self.output
     def getParaValues(self):
         pass
     def update(self, error, at):
@@ -48,9 +48,6 @@ class FullyConnectedLayer(Layer):
             self.b.name: self.bVal
         }
 
-    def getOutput(self):
-        return self.output
-    
     def update(self, error, at):
         dedW = gradient(error, self.W, at)
         self.WVal += 0.01 * dedW
@@ -59,36 +56,30 @@ class FullyConnectedLayer(Layer):
 
 
 class SelfAttentionLayer(Layer):
-    def __init__(self, name, nIn, useMask, input):
+    def __init__(self, name, input):
         """
-        softmax((Q . K^T)/sqrt(kSize) + M) @ V
+        https://www.youtube.com/watch?v=KmAISyVvE1Y
+        sequence-to-sequence-layer
+        no parameters
+
+        Nice analogy:
+        Word: person
+        Word's embedding: person's interests
+        Interests * Interests^T: compatability-matrix
+        Compat-matrix * Interests: how well is this person integrated into each interest's community
+                                 = word expressed by how well its embedding's elements fit with the other words
         """
         self.name = name
-        kSize = 8
-        vSize = 8
-        
-        self.QVal = np.random.random([nIn, kSize])
-        self.KVal = np.random.random([nIn, kSize])
-        self.VVal = np.random.random([nIn, vSize])
-        
+
+        WPrime = MatMul(input, Transpose(input))
+        W = SoftMax(WPrime)
+        output = MatMul(input, Transpose(W))
+
         self.input = input
-        self.Q = Variable(f"{self.name}-Q")
-        self.K = Variable(f"{self.name}-K")
-        self.V = Variable(f"{self.name}-V")
-        
-        # How much each word relates to each other word
-        focusOnEachOther = MatMul(self.Q, Transpose(self.K))
-        normalizedFocus = ScalarProd(focusOnEachOther, 1.0 / np.sqrt(kSize))
+        self.output = output
 
-        # For decoder only: hide words that come after the current word
-        if useMask:
-            maskVal = np.tril(np.ones(nIn, nIn))
-            maskVal[maskVal == 0] = -np.infty
-            maskVal[maskVal == 1] = 0
-            mask = Constant(maskVal)
-            attention = SoftMax(Plus(normalizedFocus, mask))
-        else:
-            attention = SoftMax(normalizedFocus)
-
-        # 
-        newV = MatMul(attention, self.V)
+    def getParaValues(self):
+        return {}
+    
+    def update(self, error, at):
+        return

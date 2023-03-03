@@ -1,7 +1,7 @@
 import unittest as ut
 import numpy as np
 from nodes import Variable, MatMul, Plus, Sigmoid, Sse, gradient
-from nn import FullyConnectedLayer
+from nn import FullyConnectedLayer, SelfAttentionLayer
 
 
 class NnTests(ut.TestCase):
@@ -85,7 +85,44 @@ class NnTests(ut.TestCase):
         eFinal = err.eval(at)
         self.assertLess(eFinal, eInitial)
 
+    def testSelfAttention(self):
+        """
+        Task: sentiment-analysis
+            Take in restaurant-reviews
+            Analyze sentiment
+        """
+
+        sentence = Variable("sentence")
+        sentiment = Variable("sentiment")
+
+        embedder = FullyConnectedLayer("Word embedder", 20, 4, sentence)
+        attention = SelfAttentionLayer("Self attention", embedder.getOutput())
+        interpreter = FullyConnectedLayer("Interpreter", 4, 1, attention.getOutput())
+        err = Sse(sentiment, interpreter.getOutput())
+
+        sentenceValue = np.random.random(20)
+        sentimentValue = np.random.random(1)
+
+        at = {
+            'sentence': sentenceValue,
+            'sentiment': sentimentValue
+        }
+        at.update(embedder.getParaValues())
+        at.update(interpreter.getParaValues())
+
+        eInitial = err.eval(at)
+
+        N = 30
+        for i in range(N):
+            embedder.update(err, at)
+            interpreter.update(err, at)
+            at.update(embedder.getParaValues())
+            at.update(interpreter.getParaValues())
+            print(f"{round(100 * i/N)}% - {err.eval(at)}")
         
+        eFinal = err.eval(at)
+        self.assertLess(eFinal, eInitial)
+
 
 
 
