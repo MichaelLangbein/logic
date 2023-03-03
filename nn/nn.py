@@ -59,24 +59,30 @@ class SelfAttentionLayer(Layer):
     def __init__(self, name, input):
         """
         https://www.youtube.com/watch?v=KmAISyVvE1Y
-        sequence-to-sequence-layer
-        no parameters
+        sequence-to-sequence layer.
+        simply creates more meaningful embeddings.
+        no parameters.
+
+        Example: 
+        Sentence: "Restaurant was not terrible"
+        Usually, the presence of the word "terrible" means a negative sentiment
+        But "terrible" and "not" together can interact and yield a positive sentiment
 
         Nice analogy:
-        Word: person
-        Word's embedding: person's interests
-        Interests * Interests^T: compatability-matrix
-        Compat-matrix * Interests: how well is this person integrated into each interest's community
-                                 = word expressed by how well its embedding's elements fit with the other words
+        Word:                                person
+        Word's embedding:        (input[i])  person, expressed by their interests
+        Interests^T * Interests: (W)         how much do different interests relate (example: 'arts' and 'music')  - like in recommender systems
+        W * Interests^T:         (output[i]) person's interests corrected for how the interests bleed over into other interests
+                                             = word embedding corrected by how every dim of embedding relates to other dims
         """
         self.name = name
 
-        WPrime = MatMul(input, Transpose(input))
+        WPrime = MatMul(Transpose(input), input)
         W = SoftMax(WPrime)
-        output = MatMul(input, Transpose(W))
+        outputT = MatMul(W, Transpose(input))
 
         self.input = input
-        self.output = output
+        self.output = Transpose(output)
 
     def getParaValues(self):
         return {}
