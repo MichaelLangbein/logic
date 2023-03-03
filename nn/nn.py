@@ -1,4 +1,4 @@
-from nodes import Node, Plus, Sse, Variable, MatMul, Sigmoid, gradient
+from nodes import Node, Constant, Plus, Sse, Variable, MatMul, ScalarProd, Sigmoid, gradient
 import numpy as np
 
 
@@ -59,12 +59,36 @@ class FullyConnectedLayer(Layer):
 
 
 class SelfAttentionLayer(Layer):
-    def __init__(self, name, nIn, nOut, input):
+    def __init__(self, name, nIn, useMask, input):
+        """
+        softmax((Q . K^T)/sqrt(kSize) + M) @ V
+        """
         self.name = name
-        self.QVal = 
-        self.KVal = 
-        self.VVal = 
+        kSize = 8
+        vSize = 8
+        
+        self.QVal = np.random.random([nIn, kSize])
+        self.KVal = np.random.random([nIn, kSize])
+        self.VVal = np.random.random([nIn, vSize])
+        
         self.input = input
         self.Q = Variable(f"{self.name}-Q")
         self.K = Variable(f"{self.name}-K")
         self.V = Variable(f"{self.name}-V")
+        
+        # How much each word relates to each other word
+        focusOnEachOther = MatMul(self.Q, Transpose(self.K))
+        normalizedFocus = ScalarProd(focusOnEachOther, 1.0 / np.sqrt(kSize))
+
+        # For decoder only: hide words that come after the current word
+        if useMask:
+            maskVal = np.tril(np.ones(nIn, nIn))
+            maskVal[maskVal == 0] = -np.infty
+            maskVal[maskVal == 1] = 0
+            mask = Constant(maskVal)
+            attention = SoftMax(Plus(normalizedFocus, mask))
+        else:
+            attention = SoftMax(normalizedFocus)
+
+        # 
+        newV = MatMul(attention, self.V)
