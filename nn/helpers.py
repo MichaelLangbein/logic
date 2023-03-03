@@ -41,6 +41,10 @@ def matMul(A, B, nrDims=None):
         if B == 0:
             return 0
         B = np.array(B)
+    if not A.shape:
+        return A * B
+    if not B.shape:
+        return A * B
     axesA = []
     axesB = []
     if not nrDims:

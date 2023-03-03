@@ -6,7 +6,7 @@ from nn import FullyConnectedLayer, SelfAttentionLayer
 
 class NnTests(ut.TestCase):
    
-    def __testPrimitive(self):
+    def testPrimitive(self):
 
         i = Variable('i')
         yObs = Variable('yObs')
@@ -51,7 +51,7 @@ class NnTests(ut.TestCase):
 
         self.assertLess(ei, e0)
 
-    def __testFullyConnected(self):
+    def testFullyConnected(self):
         observation = Variable("observation")
         input = Variable("input")
         layer1 = FullyConnectedLayer("layer1", 4, 3, input)
@@ -72,7 +72,7 @@ class NnTests(ut.TestCase):
 
         eInitial = err.eval(at)
 
-        N = 30
+        N = 10
         for i in range(N):
             layer1.update(err, at)
             layer2.update(err, at)

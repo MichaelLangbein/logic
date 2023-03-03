@@ -110,35 +110,15 @@ class Mult(Node):
     
     def grad_s_v(self, v, at, grad_s_node):
         if v == self.a:
-            return grad_s_node @ eval(self.b, at)
+            return matMul(grad_s_node, eval(self.b, at), 1)
         if v == self.b:
-            return grad_s_node @ eval(self.a, at)
+            return matMul(grad_s_node, eval(self.a, at), 1)
         
     def getVariables(self):
         return [self.a, self.b]
     
     def __str__(self):
         return f"({self.a} * {self.b})"
-
-
-class Sin(Node):
-    def __init__(self, a):
-        self.a = a
-
-    def eval(self, at):
-        aV = eval(self.a, at)
-        return np.sin(aV)
-    
-    def grad_s_v(self, v, at, grad_s_node):
-        if v == self.a:
-            aV = eval(self.a, at)
-            return grad_s_node @ np.cos(aV)
-        
-    def getVariables(self):
-        return [self.a]
-
-    def __str__(self):
-        return f"sin({self.a})"
 
 
 class Exp(Node):
@@ -152,8 +132,8 @@ class Exp(Node):
     def grad_s_v(self, v, at, grad_s_node):
         if v == self.a:
             aV = eval(self.a, at)
-            grad_node_v = np.eye(len(aV)) * (aV * np.exp(aV))
-            return grad_s_node @ grad_node_v
+            grad_node_v = np.eye(len(aV) if aV.shape else 1) * (aV * np.exp(aV))
+            return matMul(grad_s_node, grad_node_v, 1)
 
     def getVariables(self):
         return [self.a]
@@ -170,11 +150,7 @@ class MatMul(Node):
     def eval(self, at):
         aV = eval(self.a, at)
         bV = eval(self.b, at)
-        try:
-            return aV @ bV
-        except:
-            return aV @ bV
-
+        return matMul(aV, bV, 1)
     
     def grad_s_v(self, v, at, grad_s_node):
         """
