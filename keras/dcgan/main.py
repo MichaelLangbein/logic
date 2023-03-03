@@ -193,3 +193,11 @@ plt.xlabel('epoch')
 plt.legend(['generator', 'discriminator'], loc='upper right')
 plt.show()
 # %%
+nrImgs = 10
+random_latent_vectors = tf.random.normal(shape=(nrImgs, gan.latent_dim))
+generated_images = gan.generator(random_latent_vectors)
+generated_images *= 255
+generated_images.numpy()
+for i in range(nrImgs):
+    img = keras.preprocessing.image.array_to_img(generated_images[i])
+    img.save(f"img{i}.png")
