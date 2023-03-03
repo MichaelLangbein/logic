@@ -91,7 +91,7 @@ def diffBySelf(shape):
 def memoized(func):
     memory = {}
     def memF(*args):
-        argString = "-".join(f"{args}")
+        argString = f"{args}"
         if argString not in memory:
             memory[argString] = func(*args)
         return memory[argString]

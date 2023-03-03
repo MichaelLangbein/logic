@@ -1,4 +1,4 @@
-from nodes import Node, Constant, Plus, Sse, Variable, MatMul, ScalarProd, Sigmoid, gradient
+from nodes import Node, Constant, Plus, Sse, Variable, MatMul, Transpose, Softmax, Sigmoid, gradient
 import numpy as np
 
 
@@ -78,11 +78,11 @@ class SelfAttentionLayer(Layer):
         self.name = name
 
         WPrime = MatMul(Transpose(input), input)
-        W = SoftMax(WPrime)
+        W = Softmax(WPrime)
         outputT = MatMul(W, Transpose(input))
 
         self.input = input
-        self.output = Transpose(output)
+        self.output = Transpose(outputT)
 
     def getParaValues(self):
         return {}

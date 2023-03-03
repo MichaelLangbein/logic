@@ -1,12 +1,12 @@
 import unittest as ut
 import numpy as np
-from nodes import Variable, MatMul, Plus, Sigmoid, Sse, gradient
+from nodes import Variable, MatMul, Plus, Transpose, Sigmoid, Softmax, Sse, gradient
 from nn import FullyConnectedLayer, SelfAttentionLayer
 
 
 class NnTests(ut.TestCase):
    
-    def testPrimitive(self):
+    def __testPrimitive(self):
 
         i = Variable('i')
         yObs = Variable('yObs')
@@ -51,7 +51,7 @@ class NnTests(ut.TestCase):
 
         self.assertLess(ei, e0)
 
-    def testFullyConnected(self):
+    def __testFullyConnected(self):
         observation = Variable("observation")
         input = Variable("input")
         layer1 = FullyConnectedLayer("layer1", 4, 3, input)

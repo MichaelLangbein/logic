@@ -170,7 +170,11 @@ class MatMul(Node):
     def eval(self, at):
         aV = eval(self.a, at)
         bV = eval(self.b, at)
-        return aV @ bV
+        try:
+            return aV @ bV
+        except:
+            return aV @ bV
+
     
     def grad_s_v(self, v, at, grad_s_node):
         """
@@ -281,7 +285,25 @@ class ScalarPower(Node):
     
     def __str__(self):
         return f"{self.a}^{self.scalar}"
+
+
+class Transpose(Node):
+    def __init__(self, a):
+        self.a = a
+
+    def eval(self, at):
+        aVal = eval(self.a, at)
+        return aVal.T
     
+    def grad_s_v(self, v, at, grad_s_node):
+        if v == self.a:
+            return grad_s_node
+        
+    def getVariables(self):
+        return [self.a]
+    
+    def __str__(self):
+        return f"{self.a}^T"
 
 
 def Sigmoid(x):
@@ -289,8 +311,20 @@ def Sigmoid(x):
     ex = Exp(minX)
     one = Constant(1)
     body = Plus(one, ex)
-    sigm = ScalarPower(body, -1)
-    return sigm
+    sigmoid = ScalarPower(body, -1)
+    return sigmoid
+
+
+def Divide(numerator, denominator):
+    result = Mult(numerator, ScalarPower(denominator, -1.0))
+    return result
+
+
+def Softmax(x):
+    ex = Exp(x)
+    sm = InnerSum(ex)
+    softmax = Divide(ex, sm)
+    return softmax
 
 
 def Sse(observation, simulation):
