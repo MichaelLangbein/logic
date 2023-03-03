@@ -1,4 +1,4 @@
-from nodes import Node, Sse, Variable, MatMul, Sigmoid, gradient
+from nodes import Node, Plus, Sse, Variable, MatMul, Sigmoid, gradient
 import numpy as np
 
 
@@ -22,52 +22,37 @@ delta Wl = - alpha dE/dWl
 
 
 class Layer:
-    def getParas(self):
-        pass
-    def eval(self, paras):
-        pass
-    def setInput(self, input):
-        pass
+    def eval(self, at):
+        return self.getOutput().eval(at)
     def getOutput(self):
         pass
-    def update(self, error):
+    def getParaValues(self):
+        pass
+    def update(self, error, at):
         pass
 
 
-class NN:
-    def __init__(self, layers):
+class FullyConnectedLayer(Layer):
+    def __init__(self, name, nIn, nOut, input):
+        self.name = name
+        self.WVal = np.random.random([nOut, nIn])
+        self.bVal = np.random.random([nOut])
+        self.input = input
+        self.W = Variable(f"{self.name}-W")
+        self.b = Variable(f"{self.name}-b")
+        self.output = Sigmoid(Plus(MatMul(self.W, self.input), self.b))
 
-        # 1: collect all parameters
-        paras = {
-            'input': None
+    def getParaValues(self):
+        return {
+            self.W.name: self.WVal,
+            self.b.name: self.bVal
         }
-        for layer in layers:
-            layerParas = layer.getParas()
-            paras += layerParas
-        self.paras = paras
 
-        # 2: connect layers to each other
-        for i, layer in enumerate(layers):
-            if i == 0:
-                continue
-            prevLayer = layers[i - 1]
-            layer.setInput(prevLayer.getOutput())
-        self.layers = layers
-
-    def predict(self, input):
-        self.paras["input"] = input
-        lastLayer = self.layers[len(self.layers) - 1]
-        prediction = lastLayer.eval(self.paras)
-        return prediction
+    def getOutput(self):
+        return self.output
     
-    def training(self, inputs, outputs):
-
-        lastLayer = self.layers[len(self.layers) - 1]
-        prediction = lastLayer.getOutput()
-        outputVariable = Variable("output")
-        error = Sse(outputVariable, prediction)
-        
-        for input, output in zip(inputs, outputs):
-            for layer in self.layers:
-                layer.update(error)
-        
+    def update(self, error, at):
+        dedW = gradient(error, self.W, at)
+        self.WVal += 0.01 * dedW
+        dedb = gradient(error, self.b, at)
+        self.bVal += 0.01 * dedb

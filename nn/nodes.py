@@ -313,6 +313,7 @@ def grad_s_x_through_op(op, x, at, grad_s_op):
     for v in op.getVariables():
         grad_s_v = op.grad_s_v(v, at, grad_s_op)
         if (type(v) is not Constant) and (grad_s_v.shape != eval(v, at).shape):
+            grad_s_v = op.grad_s_v(v, at, grad_s_op)
             raise Exception(f"Something went wrong with {op.__class__.__name__}. grad_s_v must have shape {eval(v, at).shape} but has shape {grad_s_v.shape}.")
         grad_s_x_total += grad_s_x_through_op(v, x, at, grad_s_v)
     return grad_s_x_total

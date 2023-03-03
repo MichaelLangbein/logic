@@ -16,11 +16,8 @@ model = keras_cv.models.StableDiffusion(img_width=512, img_height=512, jit_compi
 
 
 #%%
-images = model.text_to_image(
-    "a space filling curve of mathematical beauty stylized to look like a map",
-    negative_prompt="manual hand-painted",
-    batch_size=1
-)
+promt = "Homer Simpson"
+images = model.text_to_image(promt, batch_size=3)
 
 
 def plot_images(images):
@@ -34,4 +31,7 @@ def plot_images(images):
 plot_images(images)
 
 #%%
-model.
+fileName = "-".join(promt.split(" "))
+for i, image in enumerate(images):
+    keras.utils.save_img(f"{fileName}_{i}.png", image)
+# %%

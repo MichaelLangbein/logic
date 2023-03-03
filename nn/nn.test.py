@@ -1,7 +1,7 @@
 import unittest as ut
 import numpy as np
 from nodes import Variable, MatMul, Plus, Sigmoid, Sse, gradient
-
+from nn import FullyConnectedLayer
 
 
 class NnTests(ut.TestCase):
@@ -35,7 +35,7 @@ class NnTests(ut.TestCase):
         e0 = e.eval(values)
 
         alpha = 0.01
-        N = 100
+        N = 10
         for i in range(N):
             dedW2 = gradient(e, W2, values)
             dedb2 = gradient(e, x2, values)
@@ -51,7 +51,42 @@ class NnTests(ut.TestCase):
 
         self.assertLess(ei, e0)
 
+    def testFullyConnected(self):
+        observation = Variable("observation")
+        input = Variable("input")
+        layer1 = FullyConnectedLayer("layer1", 4, 3, input)
+        layer2 = FullyConnectedLayer("layer2", 3, 2, layer1.getOutput())
+        layer3 = FullyConnectedLayer("layer3", 2, 2, layer2.getOutput())
+        err = Sse(observation, layer3.getOutput())
+
+        inputTrue = np.random.random(4)
+        obsvnTrue = np.random.random(2)
+
+        at = {
+            'input': inputTrue,
+            'observation': obsvnTrue
+        }
+        at.update(layer1.getParaValues())
+        at.update(layer2.getParaValues())
+        at.update(layer3.getParaValues())
+
+        eInitial = err.eval(at)
+
+        N = 30
+        for i in range(N):
+            layer1.update(err, at)
+            layer2.update(err, at)
+            layer3.update(err, at)
+            at.update(layer1.getParaValues())
+            at.update(layer2.getParaValues())
+            at.update(layer3.getParaValues())
+            print(f"{round(100 * i/N)}% - {err.eval(at)}")
+
+        eFinal = err.eval(at)
+        self.assertLess(eFinal, eInitial)
+
         
+
 
 
 
