@@ -16,7 +16,7 @@ model = keras_cv.models.StableDiffusion(img_width=512, img_height=512, jit_compi
 
 
 #%%
-promt = "Homer Simpson"
+promt = "Caligraphy-like pattern in impressionist style"
 images = model.text_to_image(promt, batch_size=3)
 
 

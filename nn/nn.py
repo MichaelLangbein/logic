@@ -56,3 +56,15 @@ class FullyConnectedLayer(Layer):
         self.WVal += 0.01 * dedW
         dedb = gradient(error, self.b, at)
         self.bVal += 0.01 * dedb
+
+
+class SelfAttentionLayer(Layer):
+    def __init__(self, name, nIn, nOut, input):
+        self.name = name
+        self.QVal = 
+        self.KVal = 
+        self.VVal = 
+        self.input = input
+        self.Q = Variable(f"{self.name}-Q")
+        self.K = Variable(f"{self.name}-K")
+        self.V = Variable(f"{self.name}-V")
