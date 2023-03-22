@@ -18,11 +18,11 @@ import keras.layers as l
 
 """
 
-class DiffusionModel(k.Model):
+class MiniDiffusionModel(k.Model):
     def __init__(self, img_height=128, img_width=128, nr_channels=1, max_text_length=100, name=None):
         
         context = keras.layers.Input((max_text_length, 768))
-        t_embed_input = keras.layers.Input((80,))
+        t_embed_input = keras.layers.Input((320,))
         latent = keras.layers.Input((img_height // 8, img_width // 8, nr_channels))
 
         t_emb = keras.layers.Dense(320)(t_embed_input)
@@ -284,6 +284,6 @@ def td_dot(a, b):
 # %%
 k.backend.clear_session()
 
-model = DiffusionModel(128, 128, 1, 100)
+model = MiniDiffusionModel(128, 128, 1, 100)
 
 # %%
