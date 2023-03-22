@@ -1,3 +1,3 @@
 # Ongoing problems
 
-- Cannot just replace weights in existing StableDiffusion class. Need to create a new one
+- On my GPU of 8GB, I can do neither fine-tuning, nor dream-booth and not even textual-inversion.
