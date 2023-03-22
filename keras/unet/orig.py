@@ -94,14 +94,14 @@ class OxfordPets(keras.utils.Sequence):
 
 
 #%% Prepare U-Net Xception-style model
-from unet import make_unet
+from unet import make_unet, make_mini_unet
 
 
 # Free up RAM in case the model definition cells were run multiple times
 keras.backend.clear_session()
 
 # Build model
-model = make_unet(img_size[0], img_size[1], 3, num_classes)
+model = make_mini_unet(img_size[0], img_size[1], 3, num_classes)
 model.summary()
 
 
@@ -166,5 +166,5 @@ def display(indx):
     axes[2].imshow(pred, cmap="gray")
 
 #%%
-display(12)
+display(14)
 # %%
