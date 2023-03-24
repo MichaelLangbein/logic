@@ -5,112 +5,7 @@ import tensorflow as tf
 import keras.layers as l
 
 
-"""
-    Lingo
-        - context: prompt converted to latent
-        - t_embed: time-step, converted to latent
-        - latent: image, converted to latent
-
-    Simplifications:
-        - where original had dublicate blocks, this uses only one.
-        - halved all layer-sizes
-        - assumes grayscale image
-
-"""
-
-class MiniDiffusionModel(k.Model):
-    def __init__(self, img_height=128, img_width=128, nr_channels=1, max_text_length=100, name=None):
-        
-        context = keras.layers.Input((max_text_length, 768))
-        t_embed_input = keras.layers.Input((320,))
-        latent = keras.layers.Input((img_height // 8, img_width // 8, nr_channels))
-
-        t_emb = keras.layers.Dense(320)(t_embed_input)
-        t_emb = keras.layers.Activation("swish")(t_emb)
-        t_emb = keras.layers.Dense(320)(t_emb)
-
-        # Downsampling flow
-
-        outputs = []
-        x = PaddedConv2D(80, kernel_size=3, padding=1)(latent)
-        outputs.append(x)
-
-
-        x = ResBlock(80)([x, t_emb])
-        x = SpatialTransformer(2, 40, fully_connected=False)([x, context])
-        outputs.append(x)
-        x = PaddedConv2D(80, 3, strides=2, padding=1)(x)  # Downsample 2x
-        outputs.append(x)
-
-        x = ResBlock(160)([x, t_emb])
-        x = SpatialTransformer(4, 40, fully_connected=False)([x, context])
-        outputs.append(x)
-        x = PaddedConv2D(160, 3, strides=2, padding=1)(x)  # Downsample 2x
-        outputs.append(x)
-
-        x = ResBlock(320)([x, t_emb])
-        x = SpatialTransformer(4, 80, fully_connected=False)([x, context])
-        outputs.append(x)
-        x = PaddedConv2D(320, 3, strides=2, padding=1)(x)  # Downsample 2x
-        outputs.append(x)
-
-        x = ResBlock(320)([x, t_emb])
-        outputs.append(x)
-
-        # Middle flow
-
-        x = ResBlock(320)([x, t_emb])
-        x = SpatialTransformer(4, 80, fully_connected=False)([x, context])
-        x = ResBlock(320)([x, t_emb])
-
-        # Upsampling flow
-
-        x = keras.layers.Concatenate()([x, outputs.pop()])
-        x = ResBlock(320)([x, t_emb])
-        # x = Upsample(320)(x)
-
-        x = keras.layers.Concatenate()([x, outputs.pop()])
-        x = ResBlock(320)([x, t_emb])
-        x = SpatialTransformer(4, 80, fully_connected=False)([x, context])
-        x = Upsample(320)(x)
-
-        x = keras.layers.Concatenate()([x, outputs.pop()])
-        x = ResBlock(320)([x, t_emb])
-        x = SpatialTransformer(4, 80, fully_connected=False)([x, context])
-        # x = Upsample(320)(x)
-
-        x = keras.layers.Concatenate()([x, outputs.pop()])
-        x = ResBlock(160)([x, t_emb])
-        x = SpatialTransformer(4, 40, fully_connected=False)([x, context])
-        x = Upsample(160)(x)
-
-        x = keras.layers.Concatenate()([x, outputs.pop()])
-        x = ResBlock(160)([x, t_emb])
-        x = SpatialTransformer(4, 40, fully_connected=False)([x, context])
-
-        x = keras.layers.Concatenate()([x, outputs.pop()])
-        x = ResBlock(80)([x, t_emb])
-        x = SpatialTransformer(2, 40, fully_connected=False)([x, context])
-        x = Upsample(160)(x)
-
-        x = keras.layers.Concatenate()([x, outputs.pop()])
-        x = ResBlock(80)([x, t_emb])
-        x = SpatialTransformer(2, 40, fully_connected=False)([x, context])
-
-        x = keras.layers.Concatenate()([x, outputs.pop()])
-        x = ResBlock(80)([x, t_emb])
-        x = SpatialTransformer(2, 40, fully_connected=False)([x, context])
-
-        # # Exit flow
-
-        x = keras.layers.GroupNormalization(groups=20, epsilon=1e-5)(x)
-        x = keras.layers.Activation("swish")(x)
-        output = PaddedConv2D(4, kernel_size=3, padding=1)(x)
-
-
-        super().__init__([latent, t_embed_input, context], output, name=name)
-
-
+#%%
 
 
 
@@ -280,6 +175,274 @@ def td_dot(a, b):
     bb = tf.reshape(b, (-1, b.shape[2], b.shape[3]))
     cc = k.backend.batch_dot(aa, bb)
     return tf.reshape(cc, (-1, a.shape[1], cc.shape[1], cc.shape[2]))
+
+
+#%%
+
+"""
+    Lingo
+        - context: prompt converted to latent
+        - t_embed: time-step, converted to latent
+        - latent: image, converted to latent
+
+    Simplifications:
+        - where original had dublicate blocks, this uses only one.
+        - halved all layer-sizes
+        - assumes grayscale image
+
+"""
+
+class MiniDiffusionModel(k.Model):
+    def __init__(self, img_height=128, img_width=128, nr_channels=1, max_text_length=100, name=None):
+        
+        context = keras.layers.Input((max_text_length, 768))
+        t_embed_input = keras.layers.Input((320,))
+        latent = keras.layers.Input((img_height // 8, img_width // 8, nr_channels))
+
+        t_emb = keras.layers.Dense(320)(t_embed_input)
+        t_emb = keras.layers.Activation("swish")(t_emb)
+        t_emb = keras.layers.Dense(320)(t_emb)
+
+        # Downsampling flow
+
+        outputs = []
+        x = PaddedConv2D(80, kernel_size=3, padding=1)(latent)
+        outputs.append(x)
+
+
+        x = ResBlock(80)([x, t_emb])
+        x = SpatialTransformer(2, 40, fully_connected=False)([x, context])
+        outputs.append(x)
+        x = PaddedConv2D(80, 3, strides=2, padding=1)(x)  # Downsample 2x
+        outputs.append(x)
+
+        x = ResBlock(160)([x, t_emb])
+        x = SpatialTransformer(4, 40, fully_connected=False)([x, context])
+        outputs.append(x)
+        x = PaddedConv2D(160, 3, strides=2, padding=1)(x)  # Downsample 2x
+        outputs.append(x)
+
+        x = ResBlock(320)([x, t_emb])
+        x = SpatialTransformer(4, 80, fully_connected=False)([x, context])
+        outputs.append(x)
+        x = PaddedConv2D(320, 3, strides=2, padding=1)(x)  # Downsample 2x
+        outputs.append(x)
+
+        x = ResBlock(320)([x, t_emb])
+        outputs.append(x)
+
+        # Middle flow
+
+        x = ResBlock(320)([x, t_emb])
+        x = SpatialTransformer(4, 80, fully_connected=False)([x, context])
+        x = ResBlock(320)([x, t_emb])
+
+        # Upsampling flow
+
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(320)([x, t_emb])
+        # x = Upsample(320)(x)
+
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(320)([x, t_emb])
+        x = SpatialTransformer(4, 80, fully_connected=False)([x, context])
+        x = Upsample(320)(x)
+
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(320)([x, t_emb])
+        x = SpatialTransformer(4, 80, fully_connected=False)([x, context])
+        # x = Upsample(320)(x)
+
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(160)([x, t_emb])
+        x = SpatialTransformer(4, 40, fully_connected=False)([x, context])
+        x = Upsample(160)(x)
+
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(160)([x, t_emb])
+        x = SpatialTransformer(4, 40, fully_connected=False)([x, context])
+
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(80)([x, t_emb])
+        x = SpatialTransformer(2, 40, fully_connected=False)([x, context])
+        x = Upsample(160)(x)
+
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(80)([x, t_emb])
+        x = SpatialTransformer(2, 40, fully_connected=False)([x, context])
+
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(80)([x, t_emb])
+        x = SpatialTransformer(2, 40, fully_connected=False)([x, context])
+
+        # # Exit flow
+
+        x = keras.layers.GroupNormalization(groups=20, epsilon=1e-5)(x)
+        x = keras.layers.Activation("swish")(x)
+        output = PaddedConv2D(4, kernel_size=3, padding=1)(x)
+
+
+        super().__init__([latent, t_embed_input, context], output, name=name)
+
+
+
+
+#%%
+class MicroDiffusionModel(k.Model):
+    def __init__(self, img_height=128, img_width=128, nr_channels=1, max_text_length=100, name=None):
+        
+        context = keras.layers.Input((max_text_length, 768))
+        t_embed_input = keras.layers.Input((320,))
+        latent = keras.layers.Input((img_height // 8, img_width // 8, nr_channels))
+
+        t_emb = keras.layers.Dense(320)(t_embed_input)
+        t_emb = keras.layers.Activation("swish")(t_emb)
+        t_emb = keras.layers.Dense(320)(t_emb)
+
+        # Downsampling flow
+
+        outputs = []
+
+        x = PaddedConv2D(40, kernel_size=3, padding=1)(latent)
+        outputs.append(x)
+
+        x = ResBlock(40)([x, t_emb])
+        x = SpatialTransformer(2, 20, fully_connected=False)([x, context])
+        outputs.append(x)
+        x = PaddedConv2D(40, 3, strides=2, padding=1)(x)  # Downsample 2x
+        outputs.append(x)
+
+        x = ResBlock(80)([x, t_emb])
+        x = SpatialTransformer(4, 20, fully_connected=False)([x, context])
+        outputs.append(x)
+        x = PaddedConv2D(80, 3, strides=2, padding=1)(x)  # Downsample 2x
+        outputs.append(x)
+
+        x = ResBlock(160)([x, t_emb])
+        x = SpatialTransformer(4, 40, fully_connected=False)([x, context])
+        outputs.append(x)
+        x = PaddedConv2D(160, 3, strides=2, padding=1)(x)  # Downsample 2x
+        outputs.append(x)
+
+        # Middle flow
+
+        x = ResBlock(160)([x, t_emb])
+        x = SpatialTransformer(4, 40, fully_connected=False)([x, context])
+        x = ResBlock(160)([x, t_emb])
+
+        # Upsampling flow
+
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(160)([x, t_emb])
+        x = SpatialTransformer(4, 40, fully_connected=False)([x, context])
+        x = Upsample(160)(x)
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(160)([x, t_emb])
+        x = SpatialTransformer(4, 40, fully_connected=False)([x, context])
+
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(80)([x, t_emb])
+        x = SpatialTransformer(4, 20, fully_connected=False)([x, context])
+        x = Upsample(80)(x)
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(80)([x, t_emb])
+        x = SpatialTransformer(4, 20, fully_connected=False)([x, context])
+
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(40)([x, t_emb])
+        x = SpatialTransformer(2, 20, fully_connected=False)([x, context])
+        x = Upsample(80)(x)
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(40)([x, t_emb])
+        x = SpatialTransformer(2, 20, fully_connected=False)([x, context])
+
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(40)([x, t_emb])
+        x = SpatialTransformer(2, 20, fully_connected=False)([x, context])
+
+        # # Exit flow
+
+        x = keras.layers.GroupNormalization(groups=20, epsilon=1e-5)(x)
+        x = keras.layers.Activation("swish")(x)
+        output = PaddedConv2D(4, kernel_size=3, padding=1)(x)
+
+
+        super().__init__([latent, t_embed_input, context], output, name=name)
+
+
+
+#%%
+class NanoDiffusionModel(k.Model):
+    def __init__(self, img_height=128, img_width=128, nr_channels=1, max_text_length=100, name=None):
+        
+        context = keras.layers.Input((max_text_length, 768))
+        t_embed_input = keras.layers.Input((320,))
+        latent = keras.layers.Input((img_height // 8, img_width // 8, nr_channels))
+
+        t_emb = keras.layers.Dense(320)(t_embed_input)
+        t_emb = keras.layers.Activation("swish")(t_emb)
+        t_emb = keras.layers.Dense(320)(t_emb)
+
+        # Downsampling flow
+
+        outputs = []
+
+        x = PaddedConv2D(40, kernel_size=3, padding=1)(latent)
+        outputs.append(x)
+
+        x = ResBlock(40)([x, t_emb])
+        x = SpatialTransformer(2, 20, fully_connected=False)([x, context])
+        outputs.append(x)
+        x = PaddedConv2D(40, 3, strides=2, padding=1)(x)  # Downsample 2x
+        outputs.append(x)
+
+        x = ResBlock(80)([x, t_emb])
+        x = SpatialTransformer(4, 20, fully_connected=False)([x, context])
+        outputs.append(x)
+        x = PaddedConv2D(80, 3, strides=2, padding=1)(x)  # Downsample 2x
+        outputs.append(x)
+
+
+        # Middle flow
+
+        x = ResBlock(80)([x, t_emb])
+        x = SpatialTransformer(4, 20, fully_connected=False)([x, context])
+        x = ResBlock(80)([x, t_emb])
+
+        # Upsampling flow
+
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(80)([x, t_emb])
+        x = SpatialTransformer(4, 20, fully_connected=False)([x, context])
+        x = Upsample(80)(x)
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(80)([x, t_emb])
+        x = SpatialTransformer(4, 20, fully_connected=False)([x, context])
+
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(40)([x, t_emb])
+        x = SpatialTransformer(2, 20, fully_connected=False)([x, context])
+        x = Upsample(80)(x)
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(40)([x, t_emb])
+        x = SpatialTransformer(2, 20, fully_connected=False)([x, context])
+
+        x = keras.layers.Concatenate()([x, outputs.pop()])
+        x = ResBlock(40)([x, t_emb])
+        x = SpatialTransformer(2, 20, fully_connected=False)([x, context])
+
+        # # Exit flow
+
+        x = keras.layers.GroupNormalization(groups=20, epsilon=1e-5)(x)
+        x = keras.layers.Activation("swish")(x)
+        output = PaddedConv2D(4, kernel_size=3, padding=1)(x)
+
+
+        super().__init__([latent, t_embed_input, context], output, name=name)
+
+
+
+
 
 # %%
 k.backend.clear_session()

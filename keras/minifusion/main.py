@@ -14,7 +14,7 @@ from keras_cv.models.stable_diffusion.image_encoder import ImageEncoder
 from keras_cv.models.stable_diffusion.noise_scheduler import NoiseScheduler
 from keras_cv.models.stable_diffusion.text_encoder import TextEncoder
 from tensorflow import keras
-from diffusion import MiniDiffusionModel
+from diffusion import MiniDiffusionModel, MicroDiffusionModel, NanoDiffusionModel
 
 # %%
 data_path = tf.keras.utils.get_file(
@@ -251,7 +251,7 @@ if USE_MP:
 
 image_encoder = ImageEncoder(RESOLUTION, RESOLUTION)
 diffusion_ft_trainer = Trainer(
-    diffusion_model=MiniDiffusionModel(RESOLUTION, RESOLUTION, 4, MAX_PROMPT_LENGTH),  # Encoder outputs a 4d image.
+    diffusion_model=NanoDiffusionModel(RESOLUTION, RESOLUTION, 4, MAX_PROMPT_LENGTH),  # Encoder outputs a 4d image.
     # Remove the top layer from the encoder, which cuts off the variance and only
     # returns the mean.
     vae=tf.keras.Model(
@@ -279,7 +279,7 @@ optimizer = tf.keras.optimizers.experimental.AdamW(
 diffusion_ft_trainer.compile(optimizer=optimizer, loss="mse")
 
 # %%
-epochs = 1
+epochs = 30
 ckpt_path = "finetuned_stable_diffusion.h5"
 ckpt_callback = tf.keras.callbacks.ModelCheckpoint(
     ckpt_path,
@@ -298,7 +298,7 @@ class MiniDiffusion(keras_cv.models.StableDiffusion):
         Can be overriden for tasks where the diffusion model needs to be modified.
         """
         if self._diffusion_model is None:
-            self._diffusion_model = MiniDiffusionModel(
+            self._diffusion_model = NanoDiffusionModel(
                 self.img_height, self.img_width, 4, MAX_PROMPT_LENGTH
             )
             if self.jit_compile:

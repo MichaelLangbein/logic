@@ -129,12 +129,12 @@ del text_encoder
 
 
 #%%
-resolution = 512
+RESOLUTION = 128
 auto = tf.data.AUTOTUNE
 
 augmenter = keras_cv.layers.Augmenter(
     layers=[
-        keras_cv.layers.CenterCrop(resolution, resolution),
+        keras_cv.layers.CenterCrop(RESOLUTION, RESOLUTION),
         keras_cv.layers.RandomFlip(),
         keras.layers.Rescaling(scale=1.0 / 127.5, offset=-1),
     ]
@@ -144,7 +144,7 @@ augmenter = keras_cv.layers.Augmenter(
 def process_image(image_path, tokenized_text):
     image = tf.io.read_file(image_path)
     image = tf.io.decode_png(image, 3)
-    image = tf.image.resize(image, (resolution, resolution))
+    image = tf.image.resize(image, (RESOLUTION, RESOLUTION))
     return image, tokenized_text
 
 
@@ -362,10 +362,10 @@ tf.keras.mixed_precision.set_global_policy("mixed_float16")
 
 use_mp = True  # Set it to False if you're not using a GPU with tensor cores.
 
-image_encoder = keras_cv.models.stable_diffusion.ImageEncoder(resolution, resolution)
+image_encoder = keras_cv.models.stable_diffusion.ImageEncoder(RESOLUTION, RESOLUTION)
 dreambooth_trainer = FineTunerDreamBooth(
     diffusion_model=keras_cv.models.stable_diffusion.DiffusionModel(
-        resolution, resolution, max_prompt_length
+        RESOLUTION, RESOLUTION, max_prompt_length
     ),
     # Remove the top layer from the encoder, which cuts off the variance and only
     # returns the mean.
@@ -414,7 +414,7 @@ dreambooth_trainer.fit(train_dataset, epochs=epochs, callbacks=[ckpt_callback])
 #%%
 # Initialize a new Stable Diffusion model.
 dreambooth_model = keras_cv.models.StableDiffusion(
-    img_width=resolution, img_height=resolution, jit_compile=True
+    img_width=RESOLUTION, img_height=RESOLUTION, jit_compile=True
 )
 dreambooth_model.diffusion_model.load_weights(ckpt_path)
 
