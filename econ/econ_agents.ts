@@ -39,10 +39,10 @@ class BankBrain {
     takeLoanMaxRate: number;
   } {
     return {
-      savingsRate: 0.01,
+      savingsRate: 0.001,
       savingsTarget: 10_000,
       giveLoanTarget: 10,
-      giveLoanRate: 0.01,
+      giveLoanRate: 0.001,
       bondsTarget: 10,
       takeLoanTarget: 1,
       takeLoanMaxRate: 0.01,
@@ -84,7 +84,7 @@ class GovernmentBrain {
       productTarget: 100,
       maxProductPrice: 10,
       loanTarget: 100,
-      loanRate: 0.005,
+      loanRate: 0.001,
     };
   }
 }
@@ -336,10 +336,15 @@ class Firm implements Agent, OffersJobs, SellsProduct, AsksLoan {
     this.product = this.labor * this.laborProductivity;
   }
   payBackLoan(loan: Loan): number {
-    throw new Error('Method not implemented.');
+    const amount = loan.amount * loan.interest;
+    this.money -= amount;
+    this.loan = undefined;
+    return amount;
   }
   tookLoan(loan: Loan, money: number): void {
-    throw new Error('Method not implemented.');
+    if (this.loan) throw Error('Already have a loan');
+    this.loan = loan;
+    this.money += money;
   }
   wouldTakeLoanAtRate(data: { amount: number; rate: number }): boolean {
     if (this.loan) return false;
@@ -398,7 +403,7 @@ class Bank implements Agent, OffersLoan, AsksSavings, AsksLoan, AsksBond {
   wouldTakeLoanAtRate(data: { amount: number; rate: number }): boolean {
     const takenLoans = this.takenLoans.reduce((sum, l) => sum + l.amount, 0);
     if (takenLoans >= this._strategyTakeLoanTarget) return false;
-    else return this._strategyTakeLoanMaxRate <= data.rate;
+    else return data.rate <= this._strategyTakeLoanMaxRate;
   }
   requiredLoan(): number {
     const existingLoans = this.givenLoans.reduce((sum, l) => sum + l.amount, 0);
@@ -536,7 +541,7 @@ class Government implements Agent, OffersLoan, OffersBond, AsksProduct {
   wouldLoanAtRate(data: { debtor: AsksLoan; amount: number }): number {
     const existingLoans = this.loans.reduce((sum, l) => sum + l.amount, 0);
     if (existingLoans >= this._strategyLoanTarget) return 99999999999;
-    return this._strategyLoanTarget;
+    return this._strategyLoanRate;
   }
   payBackBond(bond: Bond): number {
     const value = bond.value * bond.interest;
@@ -574,7 +579,9 @@ class LoanMarket {
   constructor(private wantLoan: AsksLoan[], private offerLoan: OffersLoan[]) {}
 
   tradeAll() {
-    for (const debtor of this.wantLoan) {
+    const wantLoan = shuffle(this.wantLoan);
+
+    for (const debtor of wantLoan) {
       const amount = debtor.requiredLoan();
       if (amount <= 0) continue;
 
@@ -596,11 +603,11 @@ class LoanMarket {
     }
   }
 
-  static createLoan(buyer: AsksLoan, seller: OffersLoan, interest: number, amount: number) {
+  static createLoan(debtor: AsksLoan, provider: OffersLoan, interest: number, amount: number) {
     globalLoanCounter += 1;
-    const loan: Loan = { id: globalLoanCounter, amount, interest, debtor: buyer, provider: seller };
-    const money = seller.gaveLoan(loan);
-    buyer.tookLoan(loan, money);
+    const loan: Loan = { id: globalLoanCounter, amount, interest, debtor: debtor, provider: provider };
+    const money = provider.gaveLoan(loan);
+    debtor.tookLoan(loan, money);
   }
 
   static settleLoan(loan: Loan) {
