@@ -3,20 +3,37 @@
  ****************************************************************************************/
 
 class HouseholdBrain {
-  decideNextParameters(h: Household): { moneyToSave: number } {
-    return { moneyToSave: Math.random() };
+  decideNextParameters(h: Household): {
+    moneyToSave: number;
+    loanTarget: number;
+    offeredLabor: number;
+    productTarget: number;
+    maxProductPrice: number;
+  } {
+    return {
+      moneyToSave: Math.random(),
+      loanTarget: 10,
+      offeredLabor: (h as any).labor,
+      productTarget: 5,
+      maxProductPrice: 10,
+    };
   }
 }
 
 class FirmBrain {
-  decideNextParameters(f: Firm): {} {
-    return {};
+  decideNextParameters(f: Firm): { loanTarget: number; wagePerLabor: number; price: number } {
+    return { loanTarget: 0, wagePerLabor: 10, price: 10 };
   }
 }
 
 class BankBrain {
-  decideNextParameters(f: Bank): {} {
-    return {};
+  decideNextParameters(f: Bank): {
+    savingsRate: number;
+    savingsTarget: number;
+    loanTarget: number;
+    bondsTarget: number;
+  } {
+    return { savingsRate: 0.01, savingsTarget: 10_000, loanTarget: 10, bondsTarget: 10 };
   }
 }
 
@@ -36,8 +53,15 @@ class BankBrain {
  *
  */
 class GovernmentBrain {
-  decideNextParameters(f: Government): {} {
-    return {};
+  decideNextParameters(f: Government): {
+    taxRate: number;
+    nrBonds: number;
+    bondRate: number;
+    bondValue: number;
+    productTarget: number;
+    maxProductPrice: number;
+  } {
+    return { taxRate: 0.1, nrBonds: 100, bondRate: 0.01, bondValue: 100, productTarget: 100, maxProductPrice: 10 };
   }
 }
 
@@ -66,13 +90,13 @@ function shuffle<T>(array: T[]): T[] {
  * Types
  ****************************************************************************************/
 
-type Loan = { debtor: AsksLoan; provider: OffersLoan; amount: number; interest: number };
-type Bond = { government: OffersBond; bank: AsksBond; value: number; interest: number };
-type Saving = { bank: AsksSavings; customer: OffersSavings; amount: number; interest: number };
+type Loan = { id: number; debtor: AsksLoan; provider: OffersLoan; amount: number; interest: number };
+type Bond = { id: number; government: OffersBond; bank: AsksBond; value: number; interest: number };
+type Saving = { id: number; bank: AsksSavings; customer: OffersSavings; amount: number; interest: number };
 
 interface Agent {
   decideNextParameters(): void;
-  getMoney(): number;
+  endOfRound(): void;
 }
 
 interface AsksLoan {
@@ -101,9 +125,9 @@ interface OffersSavings {
 }
 
 interface AsksBond {
-  bondPayedBack(bond: Bond, money: unknown): unknown;
+  bondPayedBack(bond: Bond, money: number): void;
   gotBond(bond: Bond): void;
-  wouldBuyBond(rate: number): unknown;
+  wouldBuyBond(rate: number, value: number): boolean;
   collectBonds(collectStrat: (bond: Bond) => void): void;
 }
 interface OffersBond {
@@ -128,7 +152,7 @@ interface AsksProduct {
 }
 interface SellsProduct {
   sellProduct(price: number): number;
-  sellsProductFor(): number;
+  wouldSellProductFor(): number;
   produce(): void;
 }
 
@@ -142,9 +166,15 @@ interface TaxPayer {
 
 class Household implements Agent, AsksProduct, LookingForJob, AsksLoan, OffersSavings, TaxPayer {
   private saving: Saving | undefined;
+  private loan: Loan | undefined;
+  private product = 0;
 
   // brain decided parameters
   private _strategyMoneyToSave!: number;
+  private _strategyLoanTarget!: number;
+  private _strategyOfferedLabor!: number;
+  private _strategyProductTarget!: number;
+  private _strategyMaxProductPrice!: number;
 
   constructor(
     private brain: HouseholdBrain,
@@ -156,8 +186,18 @@ class Household implements Agent, AsksProduct, LookingForJob, AsksLoan, OffersSa
   }
 
   decideNextParameters(): void {
-    const { moneyToSave } = this.brain.decideNextParameters(this);
+    const { moneyToSave, loanTarget, offeredLabor, productTarget, maxProductPrice } =
+      this.brain.decideNextParameters(this);
     this._strategyMoneyToSave = moneyToSave;
+    this._strategyLoanTarget = loanTarget;
+    this._strategyOfferedLabor = offeredLabor;
+    this._strategyProductTarget = productTarget;
+    this._strategyMaxProductPrice = maxProductPrice;
+  }
+
+  endOfRound(): void {
+    this.product = 0;
+    this.labor = this.capacityForLabor;
   }
 
   payTaxes(taxRate: number): number {
@@ -165,20 +205,21 @@ class Household implements Agent, AsksProduct, LookingForJob, AsksLoan, OffersSa
     this.money -= amount;
     return amount;
   }
-  getMoney(): number {
-    return this.money;
-  }
   buyProduct(product: number, price: number): number {
-    throw new Error('Method not implemented.');
+    this.money -= price;
+    this.product += product;
+    return price;
   }
   wouldBuyProductFor(): number {
-    throw new Error('Method not implemented.');
+    if (this.product >= this._strategyProductTarget) return 0;
+    else return this._strategyMaxProductPrice;
   }
   sellLabor(labor: number, wage: number): void {
-    throw new Error('Method not implemented.');
+    this.labor -= labor;
+    this.money += wage;
   }
   availableLabor(): number {
-    throw new Error('Method not implemented.');
+    return this._strategyOfferedLabor;
   }
   payBackLoan(loan: Loan): number {
     throw new Error('Method not implemented.');
@@ -190,13 +231,24 @@ class Household implements Agent, AsksProduct, LookingForJob, AsksLoan, OffersSa
     throw new Error('Method not implemented.');
   }
   requiredLoan(): number {
-    throw new Error('Method not implemented.');
+    if (this.loan) return 0;
+    else return this._strategyLoanTarget;
   }
   receiveWithdrawnSaving(saving: Saving, money: number): void {
-    throw new Error('Method not implemented.');
+    if (!this.saving) throw Error("Don't have a saving to receive");
+    if (this.saving.id !== saving.id) throw Error("Saving ids don't match");
+    const expectedMoney = this.saving.amount * this.saving.interest;
+    if (money >= expectedMoney) {
+      this.saving = undefined;
+    } else {
+      this.saving.amount -= money;
+    }
+    this.money += money;
   }
   depositedSaving(saving: Saving): void {
-    throw new Error('Method not implemented.');
+    if (this.saving) throw Error(`Can't deposit saving: already have one`);
+    this.money -= saving.amount;
+    this.saving = saving;
   }
   getMoneyToSave(): number {
     return this._strategyMoneyToSave;
@@ -207,30 +259,46 @@ class Household implements Agent, AsksProduct, LookingForJob, AsksLoan, OffersSa
 }
 
 class Firm implements Agent, OffersJobs, SellsProduct, AsksLoan {
-  constructor(private brain: FirmBrain, private money: number, private labor = 0) {
+  private loan: Loan | undefined;
+  private labor: number = 0;
+  private laborProductivity = Math.random() * 10;
+  private product: number = 0;
+
+  // brain decided parameters
+  private _strategyLoanTarget!: number;
+  private _strategyWagePerLabor!: number;
+  private _strategyPrice!: number;
+
+  constructor(private brain: FirmBrain, private money: number) {
     this.decideNextParameters();
   }
 
   decideNextParameters(): void {
-    const {} = this.brain.decideNextParameters(this);
+    const { loanTarget, wagePerLabor, price } = this.brain.decideNextParameters(this);
+    this._strategyLoanTarget = loanTarget;
+    this._strategyWagePerLabor = wagePerLabor;
+    this._strategyPrice = price;
   }
-  getMoney(): number {
-    throw new Error('Method not implemented.');
-  }
+
+  endOfRound(): void {}
+
   buyLabor(labor: number, wage: number): void {
-    throw new Error('Method not implemented.');
+    this.money -= wage;
+    this.labor += labor;
   }
   wageForLabor(laborToOffer: number): number {
-    throw new Error('Method not implemented.');
+    return this._strategyWagePerLabor * laborToOffer;
   }
   sellProduct(price: number): number {
-    throw new Error('Method not implemented.');
+    this.product -= 1;
+    this.money += price;
+    return 1;
   }
-  sellsProductFor(): number {
-    throw new Error('Method not implemented.');
+  wouldSellProductFor(): number {
+    return this._strategyPrice;
   }
   produce(): void {
-    throw new Error('Method not implemented.');
+    this.product = this.labor * this.laborProductivity;
   }
   payBackLoan(loan: Loan): number {
     throw new Error('Method not implemented.');
@@ -242,25 +310,36 @@ class Firm implements Agent, OffersJobs, SellsProduct, AsksLoan {
     throw new Error('Method not implemented.');
   }
   requiredLoan(): number {
-    throw new Error('Method not implemented.');
+    if (this.loan) return 0;
+    else return this._strategyLoanTarget;
   }
 }
 
 class Bank implements Agent, OffersLoan, AsksSavings, AsksLoan, AsksBond {
   private bonds: Bond[] = [];
   private loans: Loan[] = [];
+  private savings: Saving[] = [];
+
+  // brain decided parameters
+  private _strategySavingsTarget!: number;
+  private _strategySavingsRate!: number;
+  private _strategyLoanTarget!: number;
+  private _strategyBondTarget!: number;
 
   constructor(private brain: BankBrain, private money: number) {
     this.decideNextParameters();
   }
 
   decideNextParameters(): void {
-    const {} = this.brain.decideNextParameters(this);
+    const { savingsTarget, savingsRate, loanTarget, bondsTarget } = this.brain.decideNextParameters(this);
+    this._strategySavingsRate = savingsRate;
+    this._strategySavingsTarget = savingsTarget;
+    this._strategyLoanTarget = loanTarget;
+    this._strategyBondTarget = bondsTarget;
   }
 
-  getMoney(): number {
-    throw new Error('Method not implemented.');
-  }
+  endOfRound(): void {}
+
   payBackLoan(loan: Loan): number {
     throw new Error('Method not implemented.');
   }
@@ -271,7 +350,9 @@ class Bank implements Agent, OffersLoan, AsksSavings, AsksLoan, AsksBond {
     throw new Error('Method not implemented.');
   }
   requiredLoan(): number {
-    throw new Error('Method not implemented.');
+    const existingLoans = this.loans.reduce((sum, l) => sum + l.amount, 0);
+    if (existingLoans >= this._strategyLoanTarget) return 0;
+    else return this._strategyLoanTarget - existingLoans;
   }
   loanPayedBack(loan: Loan, money: number): void {
     throw new Error('Method not implemented.');
@@ -288,13 +369,17 @@ class Bank implements Agent, OffersLoan, AsksSavings, AsksLoan, AsksBond {
     throw new Error('Method not implemented.');
   }
   withdrawSaving(saving: Saving): number {
-    throw new Error('Method not implemented.');
+    const value = saving.amount * saving.interest;
+    this.savings = this.savings.filter((s) => s.id !== saving.id);
+    return value;
   }
   receivedSaving(saving: Saving): void {
-    throw new Error('Method not implemented.');
+    this.savings.push(saving);
   }
   wouldTakeSavingsAtRate(moneyToSave: number): number {
-    throw new Error('Method not implemented.');
+    const existingSavings = this.savings.reduce((prev, curr) => prev + curr.amount, 0);
+    if (existingSavings > this._strategySavingsTarget) return -1;
+    else return this._strategySavingsRate;
   }
   bondPayedBack(bond: Bond, money: unknown): unknown {
     throw new Error('Method not implemented.');
@@ -302,8 +387,10 @@ class Bank implements Agent, OffersLoan, AsksSavings, AsksLoan, AsksBond {
   gotBond(bond: Bond): void {
     throw new Error('Method not implemented.');
   }
-  wouldBuyBond(rate: number): unknown {
-    throw new Error('Method not implemented.');
+  wouldBuyBond(rate: number, value: number): boolean {
+    const currentBondValue = this.bonds.reduce((sum, b) => sum + b.value, 0);
+    if (currentBondValue >= this._strategyBondTarget) return false;
+    return true;
   }
   collectBonds(collectStrat: (bond: Bond) => void): void {
     for (const bond of this.bonds) {
@@ -314,18 +401,33 @@ class Bank implements Agent, OffersLoan, AsksSavings, AsksLoan, AsksBond {
 
 class Government implements Agent, OffersLoan, OffersBond, AsksProduct {
   private loans: Loan[] = [];
-  private _strategyTaxRate = 0.1;
+  private product = 0;
+
+  // brain decided parameters
+  private _strategyTaxRate!: number;
+  private _strategyNrBonds!: number;
+  private _strategyBondRate!: number;
+  private _strategyBondValue!: number;
+  private _strategyProductTarget!: number;
+  private _strategyMaxProductPrice!: number;
 
   constructor(private brain: GovernmentBrain, private money: number) {
     this.decideNextParameters();
   }
 
   decideNextParameters(): void {
-    const {} = this.brain.decideNextParameters(this);
+    const { taxRate, nrBonds, bondRate, bondValue, productTarget, maxProductPrice } =
+      this.brain.decideNextParameters(this);
+    this._strategyTaxRate = taxRate;
+    this._strategyNrBonds = nrBonds;
+    this._strategyBondRate = bondRate;
+    this._strategyBondValue = bondValue;
+    this._strategyProductTarget = productTarget;
+    this._strategyMaxProductPrice = maxProductPrice;
   }
 
-  getMoney(): number {
-    return this.getMoney();
+  endOfRound(): void {
+    this.product = 0;
   }
 
   collectTaxes(households: Household[]) {
@@ -354,19 +456,26 @@ class Government implements Agent, OffersLoan, OffersBond, AsksProduct {
     throw new Error('Method not implemented.');
   }
   nrBondsOffered(): { nrBonds: number; rate: number; value: number } {
-    throw new Error('Method not implemented.');
+    return { nrBonds: this._strategyNrBonds, rate: this._strategyBondRate, value: this._strategyBondValue };
   }
   buyProduct(product: number, price: number): number {
-    throw new Error('Method not implemented.');
+    this.money -= price;
+    this.product += product;
+    return price;
   }
   wouldBuyProductFor(): number {
-    throw new Error('Method not implemented.');
+    if (this.product >= this._strategyProductTarget) return 0;
+    else return this._strategyMaxProductPrice;
   }
 }
 
 /****************************************************************************************
  * Markets
  ****************************************************************************************/
+
+let globalLoanCounter = 0;
+let globalSavingsCounter = 0;
+let globalBondCounter = 0;
 
 class LoanMarket {
   constructor(private wantLoan: AsksLoan[], private offerLoan: OffersLoan[]) {}
@@ -395,7 +504,8 @@ class LoanMarket {
   }
 
   static createLoan(buyer: AsksLoan, seller: OffersLoan, interest: number, amount: number) {
-    const loan: Loan = { amount, interest, debtor: buyer, provider: seller };
+    globalLoanCounter += 1;
+    const loan: Loan = { id: globalLoanCounter, amount, interest, debtor: buyer, provider: seller };
     seller.gaveLoan(loan);
     buyer.tookLoan(loan);
   }
@@ -445,7 +555,7 @@ class ProductMarket {
       let bestSeller: SellsProduct | undefined = undefined;
 
       for (const seller of this.sellers) {
-        const price = seller.sellsProductFor();
+        const price = seller.wouldSellProductFor();
         if (price < bestPrice) {
           bestPrice = price;
           bestSeller = seller;
@@ -487,7 +597,8 @@ class SavingsMarket {
   }
 
   static deposit(customer: OffersSavings, amount: number, bank: AsksSavings, interest: number) {
-    const saving: Saving = { amount, interest, bank, customer };
+    globalSavingsCounter += 1;
+    const saving: Saving = { id: globalSavingsCounter, amount, interest, bank, customer };
     customer.depositedSaving(saving);
     bank.receivedSaving(saving);
   }
@@ -506,7 +617,7 @@ class BondsMarket {
     for (let nrBondsLeft = nrBonds; nrBondsLeft > 0; nrBondsLeft--) {
       const banks = shuffle(this.banks);
       for (const bank of banks) {
-        if (bank.wouldBuyBond(rate)) {
+        if (bank.wouldBuyBond(rate, value)) {
           BondsMarket.createBond(this.government, bank, rate, value);
         }
       }
@@ -514,7 +625,8 @@ class BondsMarket {
   }
 
   static createBond(government: OffersBond, bank: AsksBond, interest: number, value: number) {
-    const bond: Bond = { value, interest, government, bank };
+    globalBondCounter += 1;
+    const bond: Bond = { id: globalBondCounter, value, interest, government, bank };
     bank.gotBond(bond);
     government.lentOutBond(bond);
   }
@@ -584,4 +696,10 @@ for (let t = 0; t < 1000; t++) {
   // 5. goods market
   const gm = new ProductMarket([...households, government], firms);
   gm.tradeAll();
+
+  // 6. cleanup
+  households.map((h) => h.endOfRound());
+  firms.map((f) => f.endOfRound());
+  banks.map((b) => b.endOfRound());
+  government.endOfRound();
 }
