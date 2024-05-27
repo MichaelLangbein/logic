@@ -2,7 +2,15 @@
  * User defined logic
  ****************************************************************************************/
 
+/**
+ * Brains take their body (a household, a firm, a bank or a government)
+ * and global statistics as input
+ * and return the parameters that determine their behavior in the upcoming round.
+ */
+
 class HouseholdBrain {
+  constructor(private stats: Statistics) {}
+
   decideNextParameters(h: Household): {
     moneyToSave: number;
     loanTarget: number;
@@ -11,8 +19,12 @@ class HouseholdBrain {
     productTarget: number;
     maxProductPrice: number;
   } {
+    const money = (h as any).money;
+    const labor = (h as any).labor;
+    const price = this.stats.prices.at(-1);
+
     return {
-      moneyToSave: Math.random(),
+      moneyToSave: (h as any).money * 0.1,
       loanTarget: 10,
       loanMaxRate: 0.01,
       offeredLabor: (h as any).labor,
@@ -23,12 +35,16 @@ class HouseholdBrain {
 }
 
 class FirmBrain {
+  constructor(private stats: Statistics) {}
+
   decideNextParameters(f: Firm): { loanTarget: number; loanMaxRate: number; wagePerLabor: number; price: number } {
     return { loanTarget: 10, loanMaxRate: 0.01, wagePerLabor: 10, price: 10 };
   }
 }
 
 class BankBrain {
+  constructor(private stats: Statistics) {}
+
   decideNextParameters(f: Bank): {
     savingsRate: number;
     savingsTarget: number;
@@ -66,6 +82,8 @@ class BankBrain {
  *
  */
 class GovernmentBrain {
+  constructor(private stats: Statistics) {}
+
   decideNextParameters(f: Government): {
     taxRate: number;
     nrBonds: number;
@@ -184,6 +202,14 @@ interface TaxPayer {
   payTaxes(taxRate: number): number;
 }
 
+interface Statistics {
+  gdps: number[];
+  unemployments: number[];
+  moneys: number[];
+  prices: number[];
+  interestRates: number[];
+}
+
 /****************************************************************************************
  * Actors
  ****************************************************************************************/
@@ -245,7 +271,7 @@ class Household implements Agent, AsksProduct, LookingForJob, AsksLoan, OffersSa
     this.money += wage;
   }
   availableLabor(): number {
-    return this._strategyOfferedLabor;
+    return Math.min(this._strategyOfferedLabor, this.labor);
   }
   payBackLoan(loan: Loan): number {
     const amount = loan.amount * loan.interest;
@@ -330,6 +356,7 @@ class Firm implements Agent, OffersJobs, SellsProduct, AsksLoan {
     return 1;
   }
   wouldSellProductFor(): number {
+    if (this.product <= 0) return 999999999;
     return this._strategyPrice;
   }
   produce(): void {
@@ -741,65 +768,109 @@ class BondsMarket {
  * Simulation
  ****************************************************************************************/
 
-let households: Household[] = [];
-for (let h = 0; h < 1000; h++) {
-  households.push(new Household(new HouseholdBrain(), 100));
+function simulate(
+  createHouseHoldBrain: (stats: Statistics) => HouseholdBrain,
+  createFirmBrain: (stats: Statistics) => FirmBrain,
+  createBankBrain: (stats: Statistics) => BankBrain,
+  createGovernmentBrain: (stats: Statistics) => GovernmentBrain
+) {
+  const statistics: Statistics = {
+    gdps: [],
+    unemployments: [],
+    moneys: [],
+    prices: [],
+    interestRates: [],
+  };
+
+  let households: Household[] = [];
+  for (let h = 0; h < 1000; h++) {
+    households.push(new Household(createHouseHoldBrain(statistics), 100));
+  }
+  let firms: Firm[] = [];
+  for (let f = 0; f < 100; f++) {
+    firms.push(new Firm(createFirmBrain(statistics), 1000));
+  }
+  let banks: Bank[] = [];
+  for (let b = 0; b < 10; b++) {
+    banks.push(new Bank(createBankBrain(statistics), 10_000));
+  }
+  const government = new Government(createGovernmentBrain(statistics), 100_000);
+
+  for (let t = 0; t < 1000; t++) {
+    // 0. strategizing
+    government.decideNextParameters();
+    banks.map((b) => b.decideNextParameters());
+    firms.map((f) => f.decideNextParameters());
+    households.map((h) => h.decideNextParameters());
+
+    // 1. collecting
+    // government first - cannot cause insolvency
+    government.collectTaxes(households);
+    // collecting from government next - cannot cause insolvency
+    banks.map((b) => b.collectBonds(BondsMarket.collectBond));
+    // collecting from households next - cannot cause insolvency
+    banks.map((b) => b.settleLoans(LoanMarket.settleLoan));
+    // collecting from banks next - banks now have peak funds
+    households.map((h) => h.collectSavings(SavingsMarket.collectSaving));
+    // collecting from banks for government at end - government won't suffer if banks default
+    government.settleLoans(LoanMarket.settleLoan);
+    // firms = firms.map((f) => (f.money >= 0 ? f : new Firm(0)));
+    // banks = banks.map((b) => (b.money >= 0 ? b : new Bank(0)));
+
+    // 2. money markets
+    const savingsMarket = new SavingsMarket(households, banks);
+    savingsMarket.tradeAll();
+    const loansFromGovtToBanks = new LoanMarket(banks, [government]);
+    loansFromGovtToBanks.tradeAll();
+    const bondMarket = new BondsMarket(banks, government);
+    bondMarket.tradeAll();
+    const loansMarket = new LoanMarket([...households, ...firms], banks);
+    loansMarket.tradeAll();
+
+    // 3. labor market
+    const lm = new LaborMarket(households, firms);
+    lm.tradeAll();
+
+    // 4. production
+    firms.map((f) => f.produce());
+
+    // 8. more statistics
+    const price = firms.map((f) => f.wouldSellProductFor()).reduce((sum, p) => sum + p) / firms.length;
+    statistics.prices.push(price);
+
+    // 5. goods market
+    const gm = new ProductMarket([...households, government], firms);
+    gm.tradeAll();
+
+    // 6. statistics
+    const gdp = households.map((h) => (h as any).product).reduce((sum, p) => sum + p, 0);
+    const unemployment = households.map((h) => h.availableLabor()).reduce((sum, l) => sum + l, 0);
+    const money = households.map((h) => (h as any).money).reduce((sum, m) => sum + m, 0);
+    const loans = [
+      ...households.filter((h) => (h as any).loan).map((h) => (h as any).loan),
+      ...firms.filter((f) => (f as any).loan).map((f) => (f as any).loan),
+    ];
+    const interestRate = loans.reduce((sum, l: Loan) => sum + l.amount) / loans.length;
+    statistics.gdps.push(gdp);
+    statistics.unemployments.push(unemployment);
+    statistics.moneys.push(money);
+    statistics.interestRates.push(interestRate);
+
+    // 7. cleanup
+    households.map((h) => h.endOfRound());
+    firms.map((f) => f.endOfRound());
+    banks.map((b) => b.endOfRound());
+    government.endOfRound();
+  }
+
+  return statistics;
 }
-let firms: Firm[] = [];
-for (let f = 0; f < 100; f++) {
-  firms.push(new Firm(new FirmBrain(), 1000));
-}
-let banks: Bank[] = [];
-for (let b = 0; b < 10; b++) {
-  banks.push(new Bank(new BankBrain(), 10_000));
-}
-const government = new Government(new GovernmentBrain(), 100_000);
 
-for (let t = 0; t < 1000; t++) {
-  // 0. strategizing
-  government.decideNextParameters();
-  banks.map((b) => b.decideNextParameters());
-  firms.map((f) => f.decideNextParameters());
-  households.map((h) => h.decideNextParameters());
+const { gdps, unemployments, moneys, interestRates, prices } = simulate(
+  (stats) => new HouseholdBrain(stats),
+  (stats) => new FirmBrain(stats),
+  (stats) => new BankBrain(stats),
+  (stats) => new GovernmentBrain(stats)
+);
 
-  // 1. collecting
-  // government first - cannot cause insolvency
-  government.collectTaxes(households);
-  // collecting from government next - cannot cause insolvency
-  banks.map((b) => b.collectBonds(BondsMarket.collectBond));
-  // collecting from households next - cannot cause insolvency
-  banks.map((b) => b.settleLoans(LoanMarket.settleLoan));
-  // collecting from banks next - banks now have peak funds
-  households.map((h) => h.collectSavings(SavingsMarket.collectSaving));
-  // collecting from banks for government at end - government won't suffer if banks default
-  government.settleLoans(LoanMarket.settleLoan);
-  // firms = firms.map((f) => (f.money >= 0 ? f : new Firm(0)));
-  // banks = banks.map((b) => (b.money >= 0 ? b : new Bank(0)));
-
-  // 2. money markets
-  const savingsMarket = new SavingsMarket(households, banks);
-  savingsMarket.tradeAll();
-  const loansFromGovtToBanks = new LoanMarket(banks, [government]);
-  loansFromGovtToBanks.tradeAll();
-  const bondMarket = new BondsMarket(banks, government);
-  bondMarket.tradeAll();
-  const loansMarket = new LoanMarket([...households, ...firms], banks);
-  loansMarket.tradeAll();
-
-  // 3. labor market
-  const lm = new LaborMarket(households, firms);
-  lm.tradeAll();
-
-  // 4. production
-  firms.map((f) => f.produce());
-
-  // 5. goods market
-  const gm = new ProductMarket([...households, government], firms);
-  gm.tradeAll();
-
-  // 6. cleanup
-  households.map((h) => h.endOfRound());
-  firms.map((f) => f.endOfRound());
-  banks.map((b) => b.endOfRound());
-  government.endOfRound();
-}
+console.log(interestRates);
