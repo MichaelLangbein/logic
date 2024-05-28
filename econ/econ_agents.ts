@@ -21,10 +21,12 @@ class HouseholdBrain {
   } {
     const money = (h as any).money;
     const labor = (h as any).labor;
-    const price = this.stats.prices.at(-1);
+    const priceEstimate = this.stats.prices.at(-1);
+
+    const minConsumption = 2;
 
     return {
-      moneyToSave: (h as any).money * 0.1,
+      moneyToSave: money * 0.1,
       loanTarget: 10,
       loanMaxRate: 0.01,
       offeredLabor: (h as any).labor,
@@ -37,8 +39,14 @@ class HouseholdBrain {
 class FirmBrain {
   constructor(private stats: Statistics) {}
 
-  decideNextParameters(f: Firm): { loanTarget: number; loanMaxRate: number; wagePerLabor: number; price: number } {
-    return { loanTarget: 10, loanMaxRate: 0.01, wagePerLabor: 10, price: 10 };
+  decideNextParameters(f: Firm): {
+    loanTarget: number;
+    loanMaxRate: number;
+    wagePerLabor: number;
+    price: number;
+    researchFraction: number;
+  } {
+    return { loanTarget: 10, loanMaxRate: 0.01, wagePerLabor: 10, price: 10, researchFraction: 0.1 };
   }
 }
 
@@ -93,6 +101,7 @@ class GovernmentBrain {
     maxProductPrice: number;
     loanTarget: number;
     loanRate: number;
+    reserveFraction: number;
   } {
     return {
       taxRate: 0.1,
@@ -103,6 +112,7 @@ class GovernmentBrain {
       maxProductPrice: 10,
       loanTarget: 100,
       loanRate: 0.001,
+      reserveFraction: 0.1,
     };
   }
 }
@@ -111,7 +121,7 @@ class GovernmentBrain {
  * Utils
  ****************************************************************************************/
 
-function shuffle<T>(array: T[]): T[] {
+function shuffleMutating<T>(array: T[]): T[] {
   let currentIndex = array.length,
     randomIndex;
 
@@ -128,6 +138,12 @@ function shuffle<T>(array: T[]): T[] {
   return array;
 }
 
+function shuffle<T>(array: T[]): T[] {
+  // deliberately a shallow copy: only want to shuffle households, not clone them
+  const copy = [...array];
+  return shuffleMutating(copy);
+}
+
 /****************************************************************************************
  * Types
  ****************************************************************************************/
@@ -137,6 +153,7 @@ type Bond = { id: number; government: OffersBond; bank: AsksBond; value: number;
 type Saving = { id: number; bank: AsksSavings; customer: OffersSavings; amount: number; interest: number };
 
 interface Agent {
+  id: number;
   decideNextParameters(): void;
   endOfRound(): void;
 }
@@ -152,6 +169,7 @@ interface OffersLoan {
   gaveLoan(loan: Loan): number;
   settleLoans(settleLoanStrat: (loan: Loan) => void): void;
   wouldLoanAtRate(data: { debtor: AsksLoan; amount: number }): number;
+  setReserveFraction(rf: number): void;
 }
 
 interface AsksSavings {
@@ -215,6 +233,8 @@ interface Statistics {
  ****************************************************************************************/
 
 class Household implements Agent, AsksProduct, LookingForJob, AsksLoan, OffersSavings, TaxPayer {
+  readonly id: number;
+
   private saving: Saving | undefined;
   private loan: Loan | undefined;
   private product = 0;
@@ -234,6 +254,8 @@ class Household implements Agent, AsksProduct, LookingForJob, AsksLoan, OffersSa
     private labor = 1
   ) {
     this.decideNextParameters();
+    this.id = globalHouseholdCounter;
+    globalHouseholdCounter += 1;
   }
 
   decideNextParameters(): void {
@@ -318,6 +340,8 @@ class Household implements Agent, AsksProduct, LookingForJob, AsksLoan, OffersSa
 }
 
 class Firm implements Agent, OffersJobs, SellsProduct, AsksLoan {
+  readonly id: number;
+
   private loan: Loan | undefined;
   private labor: number = 0;
   private laborProductivity = Math.random() * 10;
@@ -328,20 +352,33 @@ class Firm implements Agent, OffersJobs, SellsProduct, AsksLoan {
   private _strategyWagePerLabor!: number;
   private _strategyPrice!: number;
   private _strategyMaxLoanRate!: number;
+  private _strategyRandDFraction!: number;
 
   constructor(private brain: FirmBrain, private money: number) {
+    this.id = globalFirmCounter;
+    globalFirmCounter += 1;
     this.decideNextParameters();
   }
 
   decideNextParameters(): void {
-    const { loanTarget, loanMaxRate, wagePerLabor, price } = this.brain.decideNextParameters(this);
+    const { loanTarget, loanMaxRate, wagePerLabor, price, researchFraction } = this.brain.decideNextParameters(this);
     this._strategyLoanTarget = loanTarget;
     this._strategyMaxLoanRate = loanMaxRate;
     this._strategyWagePerLabor = wagePerLabor;
     this._strategyPrice = price;
+    this._strategyRandDFraction = researchFraction;
   }
 
-  endOfRound(): void {}
+  endOfRound(): void {
+    const researchAndDevelopmentFunds = this.money * this._strategyRandDFraction;
+    this.money -= researchAndDevelopmentFunds;
+    const researchResults = (Math.random() * researchAndDevelopmentFunds) / 1000;
+    this.laborProductivity += researchResults;
+  }
+
+  produce(): void {
+    this.product = this.labor * this.laborProductivity;
+  }
 
   buyLabor(labor: number, wage: number): void {
     this.money -= wage;
@@ -358,9 +395,6 @@ class Firm implements Agent, OffersJobs, SellsProduct, AsksLoan {
   wouldSellProductFor(): number {
     if (this.product <= 0) return 999999999;
     return this._strategyPrice;
-  }
-  produce(): void {
-    this.product = this.labor * this.laborProductivity;
   }
   payBackLoan(loan: Loan): number {
     const amount = loan.amount * loan.interest;
@@ -385,6 +419,9 @@ class Firm implements Agent, OffersJobs, SellsProduct, AsksLoan {
 }
 
 class Bank implements Agent, OffersLoan, AsksSavings, AsksLoan, AsksBond {
+  readonly id: number;
+
+  private reserveFraction = 0.1;
   private bonds: Bond[] = [];
   private givenLoans: Loan[] = [];
   private takenLoans: Loan[] = [];
@@ -400,6 +437,8 @@ class Bank implements Agent, OffersLoan, AsksSavings, AsksLoan, AsksBond {
   private _strategyTakeLoanMaxRate!: number;
 
   constructor(private brain: BankBrain, private money: number) {
+    this.id = globalBankCounter;
+    globalBankCounter += 1;
     this.decideNextParameters();
   }
 
@@ -417,6 +456,9 @@ class Bank implements Agent, OffersLoan, AsksSavings, AsksLoan, AsksBond {
 
   endOfRound(): void {}
 
+  setReserveFraction(rf: number): void {
+    this.reserveFraction = rf;
+  }
   payBackLoan(loan: Loan): number {
     const amount = loan.amount * loan.interest;
     this.money -= amount;
@@ -459,17 +501,20 @@ class Bank implements Agent, OffersLoan, AsksSavings, AsksLoan, AsksBond {
     }
   }
   wouldLoanAtRate(data: { debtor: AsksLoan; amount: number }): number {
+    if (!this.canStillGiveOutLoan(data.amount)) return 99999999999;
     const existingLoans = this.givenLoans.reduce((sum, l) => sum + l.amount, 0);
-    if (existingLoans > this._strategyGiveLoanTarget) return 9999999999;
+    if (existingLoans > this._strategyGiveLoanTarget) return 99999999999;
     else return this._strategyGiveLoanRate;
   }
   withdrawSaving(saving: Saving): number {
     const value = saving.amount * saving.interest;
+    this.money -= value;
     this.savings = this.savings.filter((s) => s.id !== saving.id);
     return value;
   }
   receivedSaving(saving: Saving): void {
     this.savings.push(saving);
+    this.money += saving.amount;
   }
   wouldTakeSavingsAtRate(moneyToSave: number): number {
     const existingSavings = this.savings.reduce((prev, curr) => prev + curr.amount, 0);
@@ -492,7 +537,17 @@ class Bank implements Agent, OffersLoan, AsksSavings, AsksLoan, AsksBond {
     this.bonds.push(bond);
     return price;
   }
+  private canStillGiveOutLoan(newLoanAmount: number) {
+    const savingsTotal = this.savings.reduce((sum, s) => sum + s.amount, 0);
+    const loansTotal = this.givenLoans.reduce((sum, l) => sum + l.amount, 0);
+    const bondsTotal = this.bonds.reduce((sum, b) => sum + b.value, 0);
+
+    const potentiallyLoanedOut = newLoanAmount + loansTotal + bondsTotal;
+    if (potentiallyLoanedOut * this.reserveFraction > savingsTotal) return false;
+    return true;
+  }
   wouldBuyBond(rate: number, value: number): boolean {
+    if (!this.canStillGiveOutLoan(value)) return false;
     const currentBondValue = this.bonds.reduce((sum, b) => sum + b.value, 0);
     if (currentBondValue >= this._strategyBondTarget) return false;
     return true;
@@ -505,6 +560,8 @@ class Bank implements Agent, OffersLoan, AsksSavings, AsksLoan, AsksBond {
 }
 
 class Government implements Agent, OffersLoan, OffersBond, AsksProduct {
+  readonly id = 0;
+
   private loans: Loan[] = [];
   private product = 0;
   private givenOutBonds: Bond[] = [];
@@ -518,14 +575,24 @@ class Government implements Agent, OffersLoan, OffersBond, AsksProduct {
   private _strategyMaxProductPrice!: number;
   private _strategyLoanTarget!: number;
   private _strategyLoanRate!: number;
+  private _strategyReserveFraction!: number;
 
   constructor(private brain: GovernmentBrain, private money: number) {
     this.decideNextParameters();
   }
 
   decideNextParameters(): void {
-    const { taxRate, nrBonds, bondRate, bondValue, productTarget, maxProductPrice, loanTarget, loanRate } =
-      this.brain.decideNextParameters(this);
+    const {
+      taxRate,
+      nrBonds,
+      bondRate,
+      bondValue,
+      productTarget,
+      maxProductPrice,
+      loanTarget,
+      loanRate,
+      reserveFraction,
+    } = this.brain.decideNextParameters(this);
     this._strategyTaxRate = taxRate;
     this._strategyNrBonds = nrBonds;
     this._strategyBondRate = bondRate;
@@ -534,6 +601,7 @@ class Government implements Agent, OffersLoan, OffersBond, AsksProduct {
     this._strategyMaxProductPrice = maxProductPrice;
     this._strategyLoanTarget = loanTarget;
     this._strategyLoanRate = loanRate;
+    this._strategyReserveFraction = reserveFraction;
   }
 
   endOfRound(): void {
@@ -544,6 +612,12 @@ class Government implements Agent, OffersLoan, OffersBond, AsksProduct {
     for (const household of households) {
       this.money += household.payTaxes(this._strategyTaxRate);
     }
+  }
+  setReserveFractionForBanks(banks: Bank[]) {
+    banks.map((b) => b.setReserveFraction(this._strategyReserveFraction));
+  }
+  setReserveFraction(rf: number): void {
+    throw new Error('Method not implemented');
   }
   loanPayedBack(loan: Loan, money: number): void {
     const expectedMoney = loan.amount * loan.interest;
@@ -601,6 +675,9 @@ class Government implements Agent, OffersLoan, OffersBond, AsksProduct {
 let globalLoanCounter = 0;
 let globalSavingsCounter = 0;
 let globalBondCounter = 0;
+let globalHouseholdCounter = 0;
+let globalFirmCounter = 0;
+let globalBankCounter = 0;
 
 class LoanMarket {
   constructor(private wantLoan: AsksLoan[], private offerLoan: OffersLoan[]) {}
@@ -772,7 +849,8 @@ function simulate(
   createHouseHoldBrain: (stats: Statistics) => HouseholdBrain,
   createFirmBrain: (stats: Statistics) => FirmBrain,
   createBankBrain: (stats: Statistics) => BankBrain,
-  createGovernmentBrain: (stats: Statistics) => GovernmentBrain
+  createGovernmentBrain: (stats: Statistics) => GovernmentBrain,
+  onRound?: (households: Household[], firms: Firm[], banks: Bank[], government: Government) => void
 ) {
   const statistics: Statistics = {
     gdps: [],
@@ -788,13 +866,13 @@ function simulate(
   }
   let firms: Firm[] = [];
   for (let f = 0; f < 100; f++) {
-    firms.push(new Firm(createFirmBrain(statistics), 1000));
+    firms.push(new Firm(createFirmBrain(statistics), 1_000));
   }
   let banks: Bank[] = [];
   for (let b = 0; b < 10; b++) {
-    banks.push(new Bank(createBankBrain(statistics), 10_000));
+    banks.push(new Bank(createBankBrain(statistics), 0));
   }
-  const government = new Government(createGovernmentBrain(statistics), 100_000);
+  const government = new Government(createGovernmentBrain(statistics), 0);
 
   for (let t = 0; t < 1000; t++) {
     // 0. strategizing
@@ -804,7 +882,7 @@ function simulate(
     households.map((h) => h.decideNextParameters());
 
     // 1. collecting
-    // government first - cannot cause insolvency
+    // taxes first - cannot cause insolvency
     government.collectTaxes(households);
     // collecting from government next - cannot cause insolvency
     banks.map((b) => b.collectBonds(BondsMarket.collectBond));
@@ -814,10 +892,11 @@ function simulate(
     households.map((h) => h.collectSavings(SavingsMarket.collectSaving));
     // collecting from banks for government at end - government won't suffer if banks default
     government.settleLoans(LoanMarket.settleLoan);
-    // firms = firms.map((f) => (f.money >= 0 ? f : new Firm(0)));
-    // banks = banks.map((b) => (b.money >= 0 ? b : new Bank(0)));
+    firms = firms.map((f) => ((f as any).money >= 0 ? f : new Firm(createFirmBrain(statistics), 0)));
+    banks = banks.map((b) => ((b as any).money >= 0 ? b : new Bank(createBankBrain(statistics), 0)));
 
     // 2. money markets
+    government.setReserveFractionForBanks(banks);
     const savingsMarket = new SavingsMarket(households, banks);
     savingsMarket.tradeAll();
     const loansFromGovtToBanks = new LoanMarket(banks, [government]);
@@ -861,6 +940,8 @@ function simulate(
     firms.map((f) => f.endOfRound());
     banks.map((b) => b.endOfRound());
     government.endOfRound();
+
+    if (onRound) onRound(households, firms, banks, government);
   }
 
   return statistics;
