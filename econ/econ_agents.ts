@@ -8,6 +8,12 @@
  * and return the parameters that determine their behavior in the upcoming round.
  */
 
+/**
+ * - Maximize utility
+ *  - leisure
+ *  - product
+ *  - future money
+ */
 class HouseholdBrain {
   constructor(private stats: Statistics) {}
 
@@ -36,6 +42,13 @@ class HouseholdBrain {
   }
 }
 
+/**
+ * Maximize profit
+ * - investment
+ *    - investments have diminishing returns
+ *    - so small firms profit more from taking up loans early
+ * -
+ */
 class FirmBrain {
   constructor(private stats: Statistics) {}
 
@@ -50,6 +63,9 @@ class FirmBrain {
   }
 }
 
+/**
+ *
+ */
 class BankBrain {
   constructor(private stats: Statistics) {}
 
@@ -202,6 +218,7 @@ interface OffersJobs {
   wageForLabor(laborToOffer: number): number;
 }
 interface LookingForJob {
+  isEmployed(): boolean;
   sellLabor(labor: number, wage: number): void;
   availableLabor(): number;
 }
@@ -291,6 +308,9 @@ class Household implements Agent, AsksProduct, LookingForJob, AsksLoan, OffersSa
   sellLabor(labor: number, wage: number): void {
     this.labor -= labor;
     this.money += wage;
+  }
+  isEmployed(): boolean {
+    return this.labor < this.capacityForLabor;
   }
   availableLabor(): number {
     return Math.min(this._strategyOfferedLabor, this.labor);
@@ -861,7 +881,7 @@ function simulate(
   };
 
   let households: Household[] = [];
-  for (let h = 0; h < 1000; h++) {
+  for (let h = 0; h < 1_000; h++) {
     households.push(new Household(createHouseHoldBrain(statistics), 100));
   }
   let firms: Firm[] = [];
@@ -874,7 +894,7 @@ function simulate(
   }
   const government = new Government(createGovernmentBrain(statistics), 0);
 
-  for (let t = 0; t < 1000; t++) {
+  for (let t = 0; t < 100; t++) {
     // 0. strategizing
     government.decideNextParameters();
     banks.map((b) => b.decideNextParameters());
@@ -923,13 +943,13 @@ function simulate(
 
     // 6. statistics
     const gdp = households.map((h) => (h as any).product).reduce((sum, p) => sum + p, 0);
-    const unemployment = households.map((h) => h.availableLabor()).reduce((sum, l) => sum + l, 0);
+    const unemployment = households.filter((h) => !h.isEmployed()).length;
     const money = households.map((h) => (h as any).money).reduce((sum, m) => sum + m, 0);
     const loans = [
       ...households.filter((h) => (h as any).loan).map((h) => (h as any).loan),
       ...firms.filter((f) => (f as any).loan).map((f) => (f as any).loan),
     ];
-    const interestRate = loans.reduce((sum, l: Loan) => sum + l.amount) / loans.length;
+    const interestRate = loans.reduce((sum, l: Loan) => sum + l.amount, 0) / loans.length;
     statistics.gdps.push(gdp);
     statistics.unemployments.push(unemployment);
     statistics.moneys.push(money);
@@ -954,4 +974,15 @@ const { gdps, unemployments, moneys, interestRates, prices } = simulate(
   (stats) => new GovernmentBrain(stats)
 );
 
-console.log(interestRates);
+console.log(unemployments);
+
+/**
+ * TODO:
+ * - this can be used in a visualization
+ * - example: chord diagram of money flows over time between households, firms, banks and government
+ * - example: effect of fiscal policy
+ *    - stacked diagram of money of households, firms, banks, government
+ *    - time of change of policy highlighted
+ * - example: effect of monetary policy
+ *    - like above
+ */

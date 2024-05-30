@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node econ_agents.ts"
+    "start": "ts-node econ_iter_aggregate.ts"
   },
   "author": "",
   "license": "ISC",
