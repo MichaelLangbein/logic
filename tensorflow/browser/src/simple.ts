@@ -3,10 +3,10 @@ import { interpolatePlasma } from "d3-scale-chromatic";
 import { select } from "d3-selection";
 
 import {
-    getBackend, layers, Logs, randomNormal, Rank, Sequential, sequential, sigmoid, Tensor, tensor2d,
-    train
+    getBackend, layers, Logs, losses, ones, randomNormal, randomUniform, Rank, Sequential,
+    sequential, sigmoid, Tensor, tensor2d, train
 } from "@tensorflow/tfjs";
-import { render, show } from "@tensorflow/tfjs-vis";
+import { show } from "@tensorflow/tfjs-vis";
 
 import { createArray } from "./utils";
 
@@ -19,6 +19,10 @@ class SigmoidData implements DataProvider {
   readonly w1: Tensor<Rank>;
   readonly w2: Tensor<Rank>;
 
+  /**
+   * rows: in
+   * columns: out
+   */
   constructor(w1Values: number[][], w2Values: number[][]) {
     this.w1 = tensor2d(w1Values);
     this.w2 = tensor2d(w2Values);
@@ -42,13 +46,26 @@ class MultData implements DataProvider {
   }
 }
 
+class XorData implements DataProvider {
+  createDataPoints(batchSize: number): { xs: Tensor<Rank>; ys: Tensor<Rank> } {
+    const one = ones([batchSize, 1], 'float32');
+    const as = randomUniform([batchSize, 1], 0, 1, 'float32');
+    const bs = randomUniform([batchSize, 1], 0, 1, 'float32');
+    const sum = as.add(bs).sub(one);
+    const abs = sum.abs();
+    const xs = as.concat(bs, 1);
+    const ys = abs;
+    return { xs, ys };
+  }
+}
+
 function getModel() {
   const model = sequential();
 
   model.add(
     layers.dense({
       inputShape: [2],
-      units: 2,
+      units: 3,
       activation: 'sigmoid',
       useBias: false,
     })
@@ -62,9 +79,9 @@ function getModel() {
     })
   );
 
-  const optimizer = train.adam();
+  const optimizer = train.adagrad(0.1);
 
-  model.compile({ loss: 'meanSquaredError', optimizer });
+  model.compile({ loss: losses.meanSquaredError, optimizer });
 
   return model;
 }
@@ -101,17 +118,18 @@ export async function run() {
   // init
   const dp = new SigmoidData(
     [
-      [1, 0],
-      [0, 1],
+      [1, 1, 0],
+      [0, 1, 1],
     ],
-    [[0], [1]]
+    [[0], [1], [1]]
   );
   // const dp = new MultData();
+  // const dp = new XorData();
   const model = getModel();
   console.log('backend: ', getBackend());
 
-  show.layer({ name: 'layer0', tab: 'layers before' }, model.layers[0]);
-  show.layer({ name: 'layer1', tab: 'layers before' }, model.layers[1]);
+  // show.layer({ name: 'layer0', tab: 'layers before' }, model.layers[0]);
+  // show.layer({ name: 'layer1', tab: 'layers before' }, model.layers[1]);
 
   // // prediction
   // const testData0 = dp.createDataPoints(1);
@@ -119,7 +137,7 @@ export async function run() {
   // console.log({ predicted: predictions0.arraySync(), trueVal: testData0.ys.arraySync() });
 
   const callbacks = {
-    ...show.fitCallbacks({ name: 'Model Training', tab: 'Training' }, ['loss', 'val_loss']),
+    ...show.fitCallbacks(document.getElementById('displayTraining')!, ['loss', 'val_loss']),
     onEpochBegin: (epoch: number, logs: Logs) => {
       const weights0 = model.layers[0].getWeights()[0].arraySync() as number[][];
       const weights1 = model.layers[1].getWeights()[0].arraySync() as number[][];
@@ -128,25 +146,30 @@ export async function run() {
   };
 
   // training
-  await trainModel(model, dp, callbacks, 30, 1000, 100, 10);
+  await trainModel(model, dp, callbacks, 50, 5_000, 100, 8);
 
-  const weights0 = model.layers[0].getWeights()[0].arraySync();
-  const weights1 = model.layers[1].getWeights()[0].arraySync();
+  const weights0 = model.layers[0].getWeights()[0].arraySync() as number[][];
+  const weights1 = model.layers[1].getWeights()[0].arraySync() as number[][];
+  drawNet(weights0, weights1);
   // const bias0 = model.layers[0].getWeights()[1].arraySync();
   // const bias1 = model.layers[1].getWeights()[1].arraySync();
-  render.heatmap({ name: 'weights0', tab: 'Weights' }, { values: weights0 as any });
-  render.heatmap({ name: 'weights1', tab: 'Weights' }, { values: weights1 as any });
-  show.layer({ name: 'layer0', tab: 'layers after' }, model.layers[0]);
-  show.layer({ name: 'layer1', tab: 'layers after' }, model.layers[1]);
+  // render.heatmap({ name: 'weights0', tab: 'Weights' }, { values: weights0 as any });
+  // render.heatmap({ name: 'weights1', tab: 'Weights' }, { values: weights1 as any });
+  // show.layer({ name: 'layer0', tab: 'layers after' }, model.layers[0]);
+  // show.layer({ name: 'layer1', tab: 'layers after' }, model.layers[1]);
   console.log({ weights0, weights1 });
 
   // prediction
-  const testData1 = dp.createDataPoints(1);
-  const predictions1 = predict(model, testData1.xs);
-  console.log({ predicted: predictions1.arraySync(), trueVal: testData1.ys.arraySync() });
+  const testData1 = dp.createDataPoints(10);
+  const predictions1 = predict(model, testData1.xs) as Tensor<Rank>;
+  console.log({
+    predicted: predictions1.arraySync(),
+    trueVal: testData1.ys.arraySync(),
+    difference: predictions1.sub(testData1.ys).abs().arraySync(),
+  });
 }
 
-// step 0: get hold of container and dimensions
+// Getting hold of container and dimensions
 const container = document.getElementById('displayNet')!;
 const width = container.clientWidth;
 const height = container.clientHeight;
@@ -164,12 +187,6 @@ const tooltip = select('body')
   .style('border-radius', '5px')
   .style('padding', '5px');
 
-/**
- * d3-function that renders the connections between the layers of a neural networks
- * as lines from circles
- * @param weights0: number[][]
- * @param weights1: number[][]
- */
 function drawNet(weights0: number[][], weights1: number[][]) {
   // step 1: parse raw data
   const rows0 = weights0.length;
@@ -208,7 +225,8 @@ function drawNet(weights0: number[][], weights1: number[][]) {
   const yScaleOut = scaleLinear()
     .domain([0, nrPointsOut - 1])
     .range([height / 2 - (yDist * nrPointsOut) / 2, height / 2 + (yDist * nrPointsOut) / 2]);
-  const weightThicknessScale = scaleLinear().domain([0, 3]).range([0, 10]);
+  const weightThicknessScale = scaleLinear().domain([0, 3]).range([3, 10]);
+  const weightColorScale = scaleLinear().domain([-3, 3]).range([0, 1]);
 
   const pointsInScaled = pointsIn.map((p) => ({ ...p, x: xScale(p.x), y: yScaleIn(p.id) }));
   const pointsMidScaled = pointsMid.map((p) => ({
@@ -232,12 +250,12 @@ function drawNet(weights0: number[][], weights1: number[][]) {
     .attr('y1', (d) => pointsScaled[d.from].y)
     .attr('x2', (d) => pointsScaled[d.to].x)
     .attr('y2', (d) => pointsScaled[d.to].y)
-    .attr('stroke', (d) => interpolatePlasma(Math.abs(d.weight) / 3.0))
+    .attr('stroke', (d) => interpolatePlasma(weightColorScale(d.weight)))
     .attr('stroke-width', (d) => weightThicknessScale(Math.abs(d.weight)))
     .attr('class', 'connection');
   connectionsSelection
-    .attr('stroke', (d) => interpolatePlasma(Math.abs(d.weight) / 3.0))
-    .attr('stroke-width', (d) => weightThicknessScale(d.weight));
+    .attr('stroke', (d) => interpolatePlasma(weightColorScale(d.weight)))
+    .attr('stroke-width', (d) => weightThicknessScale(Math.abs(d.weight)));
   connectionsSelection.exit().remove();
 
   // step 4: hovering over lines shows weight in tooltip

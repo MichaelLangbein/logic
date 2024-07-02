@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/d3-axis": "^3.0.6",
     "@types/d3-scale": "^4.0.8",
     "@types/d3-scale-chromatic": "^3.0.3",
     "@types/d3-selection": "^3.0.10",
@@ -18,8 +19,11 @@
   "dependencies": {
     "@tensorflow/tfjs": "^4.20.0",
     "@tensorflow/tfjs-vis": "^1.5.1",
+    "d3-axis": "^3.0.0",
     "d3-scale": "^4.0.2",
     "d3-scale-chromatic": "^3.1.0",
-    "d3-selection": "^3.0.0"
+    "d3-selection": "^3.0.0",
+    "vega-embed": "^6.25.0",
+    "vega-lite": "^5.19.0"
   }
 }

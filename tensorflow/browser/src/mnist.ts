@@ -179,4 +179,6 @@ export async function run() {
 
   await showAccuracy(model, data);
   await showConfusion(model, data);
+
+  await model.save('downloads://mnist_trained_model');
 }

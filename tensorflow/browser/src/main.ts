@@ -1,4 +1,4 @@
-import { run } from "./simple";
+import { run } from "./load_mnist";
 
 
 await run();
