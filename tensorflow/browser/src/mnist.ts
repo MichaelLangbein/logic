@@ -1,8 +1,7 @@
-import * as tf from "@tensorflow/tfjs";
-import * as tfvis from "@tensorflow/tfjs-vis";
+import * as tf from '@tensorflow/tfjs';
+import * as tfvis from '@tensorflow/tfjs-vis';
 
-import { MnistData } from "./mnist_data.js";
-
+import { MnistData } from './mnist_data.js';
 
 /**
  * Data
@@ -38,6 +37,15 @@ async function showExamples(data: MnistData) {
 function getModel() {
   const model = tf.sequential();
 
+  // ----- model.add (layers.Conv2D (32, kernel_size=(3, 3), activation='relu'))
+  // ----- model.add (layers.MaxPooling2D (pool_size=(2, 2)))
+  // ----- model.add (layers.Conv2D (64, kernel_size=(3, 3), activation='relu'))
+  // ----- model.add (layers.Conv2D (64, kernel_size=(3, 3), activation='relu'))
+  // ----- model.add (layers.MaxPooling2D (pool_size=(2, 2)))
+  // ----- model.add (layers.Flatten ())
+  // ----- model.add (layers.Dropout (0.5))
+  // ----- model.add (layers.Dense (NUM_CLASSES, activation='softmax'))
+
   const IMAGE_WIDTH = 28;
   const IMAGE_HEIGHT = 28;
   const IMAGE_CHANNELS = 1;
@@ -48,8 +56,8 @@ function getModel() {
   model.add(
     tf.layers.conv2d({
       inputShape: [IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_CHANNELS],
-      kernelSize: 5,
-      filters: 8,
+      kernelSize: [3, 3],
+      filters: 32,
       strides: 1,
       activation: 'relu',
       kernelInitializer: 'varianceScaling',
@@ -64,19 +72,32 @@ function getModel() {
   // Note that we have more filters in the convolution.
   model.add(
     tf.layers.conv2d({
-      kernelSize: 5,
-      filters: 16,
+      kernelSize: [3, 3],
+      filters: 64,
       strides: 1,
       activation: 'relu',
       kernelInitializer: 'varianceScaling',
     })
   );
+
+  model.add(
+    tf.layers.conv2d({
+      kernelSize: [3, 3],
+      filters: 64,
+      strides: 1,
+      activation: 'relu',
+      kernelInitializer: 'varianceScaling',
+    })
+  );
+
   model.add(tf.layers.maxPooling2d({ poolSize: [2, 2], strides: [2, 2] }));
 
   // Now we flatten the output from the 2D filters into a 1D vector to prepare
   // it for input into our last layer. This is common practice when feeding
   // higher dimensional data to a final classification output layer.
   model.add(tf.layers.flatten());
+
+  model.add(tf.layers.dropout({ rate: 0.5 }));
 
   // Our last layer is a dense layer which has 10 output units, one for each
   // output class (i.e. 0, 1, 2, 3, 4, 5, 6, 7, 8, 9).

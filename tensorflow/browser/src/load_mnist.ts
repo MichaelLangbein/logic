@@ -1,15 +1,15 @@
 // possibly better implementation: https://github.com/adc-code/ML_ImageProcessing/blob/master/MNIST_TensorFlowJS/NumPredictor.js
 
-import embed from "vega-embed";
-import { TopLevelSpec } from "vega-lite";
+import embed from 'vega-embed';
+import { TopLevelSpec } from 'vega-lite';
 
-import { loadLayersModel, Rank, Tensor, tensor4d } from "@tensorflow/tfjs";
-
+import { browser, image, loadLayersModel, Rank, scalar, Tensor } from '@tensorflow/tfjs';
 
 function drawCanvas(divElement: HTMLDivElement) {
   const canvas = document.createElement('canvas');
-  canvas.width = 28;
-  canvas.height = 28;
+  canvas.width = divElement.clientWidth; //28;
+  canvas.height = divElement.clientHeight;
+  28;
   canvas.style.setProperty('width', '100%');
   canvas.style.setProperty('height', '100%');
   divElement.appendChild(canvas);
@@ -17,9 +17,9 @@ function drawCanvas(divElement: HTMLDivElement) {
   const ctx = canvas.getContext('2d')!;
   if (!ctx) throw new Error('Failed to get 2D context');
 
-  ctx.lineWidth = 2;
+  ctx.lineWidth = canvas.width / 10;
   ctx.lineCap = 'round';
-  ctx.strokeStyle = 'white';
+  ctx.strokeStyle = 'black';
 
   let isDrawing = false;
   let lastX = 0;
@@ -55,7 +55,7 @@ function drawCanvas(divElement: HTMLDivElement) {
 
 function clearCanvas(canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = 'black';
+  ctx.fillStyle = 'white';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
@@ -73,18 +73,14 @@ function clearButton(canvasParent: HTMLDivElement, canvas: HTMLCanvasElement, re
   return button;
 }
 
-function parseButton(
-  parent: HTMLDivElement,
-  canvas: HTMLCanvasElement,
-  callback: (data: Uint8ClampedArray, width: number, height: number) => void
-) {
+function parseButton(parent: HTMLDivElement, canvas: HTMLCanvasElement, callback: (data: ImageData) => void) {
   const button = document.createElement('button');
   button.textContent = 'Parse';
   button.addEventListener('click', () => {
     const ctx = canvas.getContext('2d')!;
     if (!ctx) throw new Error('Failed to get 2D context');
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    callback(imageData.data, imageData.width, imageData.height);
+    callback(imageData);
   });
 
   parent.appendChild(button);
@@ -95,15 +91,38 @@ function parseButton(
  * Function takes a UInt8ClampedArray as input and returns a tfjs tensor of dimension [1, 28, 28, 1]
  * input data: [r,g,b,a,  r,g,b,a,  r,g,b,a, ....]
  */
-function uint8ToTensor(data: Uint8ClampedArray, w: number, h: number): Tensor<Rank> {
-  const inData = Array.from(data);
-  const outData: number[] = [];
-  for (let i = 0; i < inData.length; i += 4) {
-    const r = inData[i + 0] / 255;
-    const a = inData[i + 3] / 255;
-    outData.push(r * a);
-  }
-  return tensor4d(outData, [1, w, h, 1]);
+function uint8ToTensor(data: ImageData): Tensor<Rank> {
+  let img = browser.fromPixels(data);
+
+  // prep the number image so that the CNN can understand what it should do
+  // with it...
+
+  // resize the image it so its 28 x 28, while adding padding to the edges
+  const paddingFraction = 0.2;
+  const padding = Math.floor((28 * paddingFraction) / 2);
+  img = image.resizeBilinear(img, [28 - 2 * padding, 28 - 2 * padding]).toFloat();
+  img = img.pad(
+    [
+      [padding, padding],
+      [padding, padding],
+      [0, 0],
+    ],
+    255
+  );
+
+  // adjust the dimensions so that the image will be accepted by the CNN... note
+  // that the CNN requires tensors in the form [ batch number, image x, image y, channel ];
+  // so the tensor needs to be resized to [ 1, 28, 28, 1 ]
+  img = img.mean(2).toFloat().expandDims(0).expandDims(-1);
+
+  // Finally normalize the data...
+  img = img.div(scalar(255.0));
+
+  // and take the 'inverse' of the image since the CNN was trained with white numbers on a
+  // black background and we have black numbers on a white background
+  img = scalar(1.0).sub(img);
+
+  return img;
 }
 
 async function barchart(parent: HTMLDivElement, barChartData: { label: string; value: number }[]) {
@@ -123,13 +142,25 @@ async function barchart(parent: HTMLDivElement, barChartData: { label: string; v
   return result;
 }
 
+async function drawTensor(canvas: HTMLCanvasElement, tensor: Tensor<Rank>) {
+  canvas.width = 28;
+  canvas.height = 28;
+  canvas.style.setProperty('margin', '4px');
+  const tensor3D = tensor.slice([0, 0, 0, 0], [1, 28, 28, 1]).reshape([28, 28, 1]);
+  await browser.toPixels(tensor3D as any, canvas);
+}
+
 export async function run() {
   const resultParent = document.getElementById('displayNet') as HTMLDivElement;
   const drawingParent = document.getElementById('displayTraining') as HTMLDivElement;
+  const helperCanvas = document.createElement('canvas');
+  helperCanvas.style.setProperty('outline', '1px solid black');
+  document.body.appendChild(helperCanvas);
 
   const canvas = drawCanvas(drawingParent);
-  const pb = parseButton(drawingParent, canvas, (data, w, h) => {
-    const inputs = uint8ToTensor(data, w, h);
+  const pb = parseButton(drawingParent, canvas, (data) => {
+    const inputs = uint8ToTensor(data);
+    drawTensor(helperCanvas, inputs);
     const outputs = model.predict(inputs) as Tensor<Rank>;
     const interpretation = (outputs.arraySync() as number[][])[0];
     console.log(interpretation);
@@ -138,6 +169,5 @@ export async function run() {
   });
   const cb = clearButton(drawingParent, canvas, resultParent);
 
-  const model = await loadLayersModel('/mnist_trained_model.json');
-  console.log(model);
+  const model = await loadLayersModel('/mnist_conv_2/mnist_trained_model.json');
 }

@@ -1,4 +1,3 @@
-import { run } from "./load_mnist";
-
+import { run } from './load_mnist';
 
 await run();
