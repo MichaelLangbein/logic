@@ -5,17 +5,23 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TensorFlow.js Tutorial</title>
-
-    <!-- Import TensorFlow.js -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.0/dist/tf.min.js"></script> -->
-    <!-- Import tfjs-vis -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis@1.0.2/dist/tfjs-vis.umd.min.js"></script> -->
-    <!-- Import the data file -->
-    <!-- <script src="src/data.js" type="module"></script> -->
-
-    <!-- Import the main script file -->
-    <script src="src/main.ts" type="module"></script>
+    <style>
+      * {
+        margin: 0;
+      }
+      body {
+        width: 100%;
+        height: 100vh;
+      }
+      .displayNet {
+        width: 600px;
+        height: 400px;
+        background-color: lightgray;
+      }
+    </style>
   </head>
-
-  <body></body>
+  <body>
+    <div id="displayNet" class="displayNet"></div>
+  </body>
+  <script src="src/main.ts" type="module"></script>
 </html>

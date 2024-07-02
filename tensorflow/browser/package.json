@@ -9,11 +9,17 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/d3-scale": "^4.0.8",
+    "@types/d3-scale-chromatic": "^3.0.3",
+    "@types/d3-selection": "^3.0.10",
     "typescript": "^5.2.2",
     "vite": "^5.3.1"
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.20.0",
-    "@tensorflow/tfjs-vis": "^1.5.1"
+    "@tensorflow/tfjs-vis": "^1.5.1",
+    "d3-scale": "^4.0.2",
+    "d3-scale-chromatic": "^3.1.0",
+    "d3-selection": "^3.0.0"
   }
 }
