@@ -1,3 +1,3 @@
-import { run } from './load_mnist';
+import { run } from './load_cnn';
 
 await run();
