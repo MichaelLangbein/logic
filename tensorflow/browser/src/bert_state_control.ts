@@ -8,27 +8,73 @@
  * 5. ui executes all those steps while user watches
  */
 
-interface State {}
+/**
+ *
+ * Example state machine
+ *
+ *      room1 -- right --> room2 -- right --> room3
+ *            <-- left --        <-- left --
+ *      |                   |                   |
+ *      down                down                down
+ *      |                   |                   |
+ *      V                   V                   V
+ *      room4 -- right --> room5 -- right --> room6
+ *            <-- left --        <-- left --
+ *
+ */
 
-function statesEqual(s1: State, s2: State): boolean {}
+interface State {
+  room: number;
+}
 
-interface Action {}
+function statesEqual(s1: State, s2: State): boolean {
+  return s1.room === s2.room;
+}
+
+interface Action {
+  go: 'left' | 'right' | 'up' | 'down';
+}
 
 type Path = Action[];
 
 class FiniteStateMachine {
-  constructor(state: State) {}
+  private paths: { [state: number]: { [action: string]: number | undefined } } = {
+    1: { left: undefined, right: 2, up: undefined, down: 4 },
+    2: { left: 1, right: 3, up: undefined, down: 5 },
+    3: { left: 2, right: undefined, up: undefined, down: 6 },
+    4: { left: undefined, right: 5, up: 1, down: undefined },
+    5: { left: 4, right: 6, up: 2, down: undefined },
+    6: { left: 5, right: undefined, up: 3, down: undefined },
+  };
+
+  constructor(private state: State) {}
 
   getAllActions(): Action[] {
-    throw new Error('Method not implemented.');
+    const currentRoom = this.state.room;
+    const currentOptions = this.paths[currentRoom];
+    const possibleDirections = [];
+    for (const [direction, room] of Object.entries(currentOptions)) {
+      if (room !== undefined) {
+        possibleDirections.push({ go: direction } as Action);
+      }
+    }
+    return possibleDirections;
   }
 
   execute(action: Action): State {
-    throw new Error('Method not implemented.');
+    const currentRoom = this.state.room;
+    const currentOptions = this.paths[currentRoom];
+    const newRoom = currentOptions[action.go];
+    if (newRoom === undefined)
+      throw Error(`This action is not allowed: ${action.go} (current room: ${this.state.room})`);
+    this.state = { room: newRoom };
+    return structuredClone(this.state);
   }
 
   executeAll(actions: Path): State {
-    throw new Error('Method not implemented.');
+    let state = this.state;
+    for (const action of actions) state = this.execute(action);
+    return state;
   }
 }
 
@@ -63,6 +109,13 @@ function appendHeadsToPath(path: Path, heads: Action[]): Path[] {
     out.push([...path, head]);
   }
   return out;
+}
+
+export function run() {
+  const initialState: State = { room: 1 };
+  const targetState: State = { room: 3 };
+  const path = shortestPath(initialState, targetState);
+  console.log(path?.map((a) => a.go));
 }
 
 // interface Tree {

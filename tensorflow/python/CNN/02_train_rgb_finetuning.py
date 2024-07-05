@@ -11,6 +11,7 @@ License: MIT
 """
 import os
 
+import tensorflow as tf
 from tensorflow.keras.applications.densenet import DenseNet201 as DenseNet
 from tensorflow.keras.applications.vgg16 import VGG16 as VGG
 from tensorflow.keras.callbacks import (EarlyStopping, ModelCheckpoint,
@@ -30,6 +31,12 @@ batch_size = 32
 steps_per_epoch = 120
 epochs=30
 validation_steps = 100
+
+gpus = tf.config.list_physical_devices('GPU')
+print("Num GPUs Available: ", len(gpus))
+if len(gpus) <= 0 and epochs > 2:
+    raise Exception("You're not using GPU acceleration. Are you sure you want to go on?")
+
 
 # construct path
 path_to_home = os.path.expanduser("~")
