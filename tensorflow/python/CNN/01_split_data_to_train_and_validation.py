@@ -17,7 +17,7 @@ random.seed(42)
 # root path to folders "AnnualCrop, Forest ..." in home ("~")
 # path_to_all_images = "~/Documents/Data/EuroSAT/AllBands"
 # path_to_all_images = r'C:\Users\Jens\Downloads\EuroSAT_RGB'
-path_to_all_images = "~/Downloads/2750"
+path_to_all_images = "./2750"
 # path to new created folders "train" and "validation" with subfolders
 # "AnnualCrop, Forest ..." in home ("~")
 # path_to_split_datasets = "~/Documents/Data/PyCon/AllBands"
