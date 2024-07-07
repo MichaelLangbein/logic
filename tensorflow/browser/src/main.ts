@@ -1,3 +1,3 @@
-import { run } from './bert_state_control';
+import { run } from './load_cnn';
 
 await run();
