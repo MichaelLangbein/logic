@@ -93,7 +93,10 @@ train_generator = train_datagen.flow_from_directory(path_to_train,
                                                     class_mode='categorical')
 # just for information
 class_indices = train_generator.class_indices
+print("------------- CLASSES --------------------")
 print(class_indices)
+print("------------- CLASSES --------------------")
+
 
 # ... definition for validation
 validation_generator = test_datagen.flow_from_directory(
