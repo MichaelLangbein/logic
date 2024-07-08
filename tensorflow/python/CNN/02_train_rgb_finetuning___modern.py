@@ -28,7 +28,7 @@ path_to_split_datasets = "./data"
 use_vgg = True
 batch_size = 32
 steps_per_epoch = 120
-epochs=40
+epochs=60
 validation_steps = 100
 
 
@@ -195,10 +195,12 @@ earlystopper = EarlyStopping(monitor='val_categorical_accuracy',
 model.fit(
     train_generator,
     steps_per_epoch=steps_per_epoch,
-    epochs=epochs + int(epochs * 0.1),
+    epochs=epochs + int(epochs * 0.3),
     callbacks=[checkpointer, earlystopper, tensorboard],
     validation_data=validation_generator,
     validation_steps=validation_steps,
     initial_epoch=initial_epoch)
 
-model.save("./models/input/convertme.h5")
+import time
+timestr = time.strftime("%Y%m%d-%H%M%S")
+model.save(f"./models/input/convertme_{timestr}.h5")

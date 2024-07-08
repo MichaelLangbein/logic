@@ -5,4 +5,4 @@
 # PS: a new version of tensorflowjs (4.20) is available on pip, but throws that weird error:
 # AttributeError: module 'tensorflow.compat.v1' has no attribute 'estimator'
 
-docker run -it --rm  -v "$PWD/models:/python"  evenchange4/docker-tfjs-converter  tensorflowjs_converter --input_format=keras python/input/convertme.h5 python/output/
+docker run -it --rm  -v "$PWD/models:/python"  evenchange4/docker-tfjs-converter  tensorflowjs_converter --input_format=keras python/input/convertme_20240708-100149.h5 python/output-20240708-100149/
