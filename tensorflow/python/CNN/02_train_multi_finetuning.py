@@ -1,3 +1,4 @@
+#%%
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -10,53 +11,75 @@ License: MIT
 
 """
 import os
+from glob import glob
 
 from tensorflow.keras.applications.densenet import DenseNet201 as DenseNet
 from tensorflow.keras.applications.vgg16 import VGG16 as VGG
-from tensorflow.keras.callbacks import (EarlyStopping, ModelCheckpoint,
-                                        TensorBoard)
-from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from tensorflow.keras.layers import (Conv2D, Dense, GlobalAveragePooling2D,
+                                     Input)
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import SGD
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
-from image_functions import preprocessing_image_rgb
-
+from image_functions import simple_image_generator
 
 # variables
-path_to_split_datasets = "./data"
+path_to_split_datasets = "./data_multispec"
 use_vgg = True
 batch_size = 32
-steps_per_epoch = 120
-epochs=60
-validation_steps = 100
+steps_per_epoch=120
+epochs=40
+validation_steps=200
 
 
-# construct path
+class_indices = {'AnnualCrop': 0, 'Forest': 1, 'HerbaceousVegetation': 2,
+                 'Highway': 3, 'Industrial': 4, 'Pasture': 5,
+                 'PermanentCrop': 6, 'Residential': 7, 'River': 8,
+                 'SeaLake': 9}
+num_classes = len(class_indices)
+
+#%%
+# contruct path
 path_to_home = os.path.expanduser("~")
 path_to_split_datasets = path_to_split_datasets.replace("~", path_to_home)
 path_to_train = os.path.join(path_to_split_datasets, "train")
 path_to_validation = os.path.join(path_to_split_datasets, "validation")
 
-# get number of classes
-sub_dirs = [sub_dir for sub_dir in os.listdir(path_to_train)
-            if os.path.isdir(os.path.join(path_to_train, sub_dir))]
-num_classes = len(sub_dirs)
-
 # parameters for CNN
+input_tensor = Input(shape=(64, 64, 13))
+# introduce a additional layer to get from 13 to 3 input channels
+input_tensor = Conv2D(3, (1, 1))(input_tensor)
 if use_vgg:
+    base_model_imagenet = VGG(include_top=False,
+                              weights='imagenet',
+                              input_shape=(64, 64, 3))
     base_model = VGG(include_top=False,
-                     weights='imagenet',
-                     input_shape=(64, 64, 3))
+                     weights=None,
+                     input_tensor=input_tensor)
+    for i, layer in enumerate(base_model_imagenet.layers):
+        # we must skip input layer, which has no weights
+        if i == 0:
+            continue
+        base_model.layers[i+1].set_weights(layer.get_weights())
 else:
+    base_model_imagenet = DenseNet(include_top=False,
+                                   weights='imagenet',
+                                   input_shape=(64, 64, 3))
     base_model = DenseNet(include_top=False,
-                          weights='imagenet',
-                          input_shape=(64, 64, 3))
+                          weights=None,
+                          input_tensor=input_tensor)
+    for i, layer in enumerate(base_model_imagenet.layers):
+        # we must skip input layer, which has no weights
+        if i == 0:
+            continue
+        base_model.layers[i+1].set_weights(layer.get_weights())
+
 # add a global spatial average pooling layer
 top_model = base_model.output
 top_model = GlobalAveragePooling2D()(top_model)
 # or just flatten the layers
-#    top_model = Flatten()(top_model)
+# top_model = Flatten()(top_model)
+
 # let's add a fully-connected layer
 if use_vgg:
     # only in VGG19 a fully connected nn is added for classfication
@@ -72,42 +95,32 @@ model = Model(inputs=base_model.input, outputs=predictions)
 # print network structure
 model.summary()
 
+
+#%%
 # defining ImageDataGenerators
 # ... initialization for training
-train_datagen = ImageDataGenerator(
-    fill_mode="reflect",
-    rotation_range=45,
-    horizontal_flip=True,
-    vertical_flip=True,
-    preprocessing_function=preprocessing_image_rgb)
+training_files = glob(path_to_train + "/**/*.tif")
+train_generator = simple_image_generator(training_files, class_indices,
+                                         batch_size=batch_size,
+                                         rotation_range=45,
+                                         horizontal_flip=True,
+                                         vertical_flip=True)
 
 # ... initialization for validation
-test_datagen = ImageDataGenerator(
-    preprocessing_function=preprocessing_image_rgb)
-
-# ... definition for training
-train_generator = train_datagen.flow_from_directory(path_to_train,
-                                                    target_size=(64, 64),
-                                                    batch_size=batch_size,
-                                                    class_mode='categorical')
-# just for information
-class_indices = train_generator.class_indices
-print(class_indices)
-
-# ... definition for validation
-validation_generator = test_datagen.flow_from_directory(
-    path_to_validation,
-    target_size=(64, 64),
-    batch_size=batch_size,
-    class_mode='categorical')
+validation_files = glob(path_to_validation + "/**/*.tif")
+validation_generator = simple_image_generator(validation_files, class_indices,
+                                              batch_size=batch_size)
 
 # first: train only the top layers (which were randomly initialized)
 # i.e. freeze all convolutional layers
 for layer in base_model.layers:
     layer.trainable = False
+# set convolution block for reducing 13 to 3 layers trainable
+for layer in model.layers[:2]:
+    layer.trainable = True
 
 # compile the model (should be done *after* setting layers to non-trainable)
-model.compile(optimizer='adadelta', loss='categorical_crossentropy',
+model.compile(optimizer='adam', loss='categorical_crossentropy',
               metrics=['categorical_accuracy'])
 
 # generate callback to save best model w.r.t val_categorical_accuracy
@@ -115,37 +128,28 @@ if use_vgg:
     file_name = "vgg"
 else:
     file_name = "dense"
-
-checkpointer = ModelCheckpoint("./convertable/input/" + file_name +
-                               "_rgb_transfer_init." +
+checkpointer = ModelCheckpoint("./checkpoints/models/" + file_name +
+                               "_ms_transfer_init." +
                                "{epoch:02d}-{val_categorical_accuracy:.3f}." +
                                "hdf5",
                                monitor='val_categorical_accuracy',
                                verbose=1,
                                save_best_only=True,
                                mode='max')
-
 earlystopper = EarlyStopping(monitor='val_categorical_accuracy',
                              patience=10,
                              mode='max',
                              restore_best_weights=True)
-
-tensorboard = TensorBoard(log_dir='./logs', write_graph=True,
-                          write_images=True, update_freq='epoch')
-
 history = model.fit(
     train_generator,
     steps_per_epoch=steps_per_epoch,
     epochs=epochs,
-    callbacks=[checkpointer, earlystopper,
-                tensorboard],
+    callbacks=[checkpointer, earlystopper],
     validation_data=validation_generator,
     validation_steps=validation_steps)
-if "loss" in history.history:
-    initial_epoch = len(history.history['loss'])+1
-else:
-    initial_epoch = 0
+initial_epoch = len(history.history['loss'])+1
 
+#%%
 # at this point, the top layers are well trained and we can start fine-tuning
 # convolutional layers. We will freeze the bottom N layers
 # and train the remaining top layers.
@@ -160,14 +164,18 @@ print(names)
 if use_vgg:
     # we will freaze the first convolutional block and train all
     # remaining blocks, including top layers.
-    for layer in model.layers[:4]:
+    for layer in model.layers[:2]:
+        layer.trainable = True
+    for layer in model.layers[2:5]:
         layer.trainable = False
-    for layer in model.layers[4:]:
+    for layer in model.layers[5:]:
         layer.trainable = True
 else:
-    for layer in model.layers[:7]:
+    for layer in model.layers[:2]:
+        layer.trainable = True
+    for layer in model.layers[2:8]:
         layer.trainable = False
-    for layer in model.layers[7:]:
+    for layer in model.layers[8:]:
         layer.trainable = True
 
 # we need to recompile the model for these modifications to take effect
@@ -181,8 +189,8 @@ if use_vgg:
     file_name = "vgg"
 else:
     file_name = "dense"
-checkpointer = ModelCheckpoint("./convertable/input/" + file_name +
-                               "_rgb_transfer_final." +
+checkpointer = ModelCheckpoint("./checkpoints/models/" + file_name +
+                               "_ms_transfer_final." +
                                "{epoch:02d}-{val_categorical_accuracy:.3f}" +
                                ".hdf5",
                                monitor='val_categorical_accuracy',
@@ -190,17 +198,18 @@ checkpointer = ModelCheckpoint("./convertable/input/" + file_name +
                                save_best_only=True,
                                mode='max')
 earlystopper = EarlyStopping(monitor='val_categorical_accuracy',
-                             patience=50,
+                             patience=10,
                              mode='max')
-model.fit(
+fineTuneHistory = model.fit(
     train_generator,
     steps_per_epoch=steps_per_epoch,
-    epochs=epochs + int(epochs * 0.3),
-    callbacks=[checkpointer, earlystopper, tensorboard],
+    epochs=int(epochs * 1.3),
+    callbacks=[checkpointer, earlystopper],
     validation_data=validation_generator,
     validation_steps=validation_steps,
     initial_epoch=initial_epoch)
 
+#%%
 import time
 timestr = time.strftime("%Y%m%d-%H%M%S")
-model.save(f"./models/input/convertme_{timestr}.h5")
+model.save(f"./models/input/convertme_{timestr}_{fineTuneHistory.history['categorical_accuracy'][-1]}.h5")

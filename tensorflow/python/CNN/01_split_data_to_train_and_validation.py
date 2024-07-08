@@ -15,14 +15,9 @@ import shutil
 random.seed(42)
 # variables
 # root path to folders "AnnualCrop, Forest ..." in home ("~")
-# path_to_all_images = "~/Documents/Data/EuroSAT/AllBands"
-# path_to_all_images = r'C:\Users\Jens\Downloads\EuroSAT_RGB'
-path_to_all_images = "./2750"
+path_to_all_images = "./base_data_multispec"
 # path to new created folders "train" and "validation" with subfolders
-# "AnnualCrop, Forest ..." in home ("~")
-# path_to_split_datasets = "~/Documents/Data/PyCon/AllBands"
-# path_to_split_datasets = r'C:\Users\Jens\Downloads\PyCon\RGB'
-path_to_split_datasets = "./data"
+path_to_split_datasets = "./data_multispec"
 # percentage of validation data (between 0 an 1)
 percentage_validation = 0.3
 # !!! If "True", complete "path_to_split_datasets" tree will be deleted !!!

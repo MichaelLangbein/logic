@@ -11,7 +11,6 @@ License: MIT
 
 """
 import os
-# os.environ["TF_USE_LEGACY_KERAS"] = "1"
 from osgeo import gdal
 import numpy as np
 from skimage.io import imread
@@ -21,7 +20,7 @@ from tqdm import tqdm
 
 #%%
 # input files
-path_to_image = "./verification/satellite_image_small.webp"
+path_to_image = "./verification_rgb/Screenshot_2024-07-08_12-04-09.png"
 path_to_model = "./models/input/convertme_20240708-100149.h5"
 # output files
 path_to_label_image = "./verification/_10m_vgg_ms_label.tif"
@@ -120,7 +119,7 @@ for i in range(rows):
 
 
 fig, axes = plt.subplots(1, 2)
-img0 = axes[0].imshow(unpaddedImage / 255,  interpolation='none')
+img0 = axes[0].imshow(unpaddedImage / 2,  interpolation='none')
 img1 = axes[1].imshow(image_classified_label_rgb / 255, interpolation='none')
 
 

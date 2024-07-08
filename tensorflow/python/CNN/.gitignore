@@ -1,6 +1,13 @@
-data
 2750
-EuroSAT.zip
+checkpoints
 convertable
-models
+data
+data_multispec
+data_rgb
+EuroSAT.zip
 logs
+models
+models_multispec
+models_rgb
+verification_rgb
+verification_multi

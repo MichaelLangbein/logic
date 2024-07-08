@@ -11,7 +11,6 @@ License: MIT
 """
 import os
 
-import tensorflow as tf
 from tensorflow.keras.applications.densenet import DenseNet201 as DenseNet
 from tensorflow.keras.applications.vgg16 import VGG16 as VGG
 from tensorflow.keras.callbacks import (EarlyStopping, ModelCheckpoint,
@@ -29,7 +28,7 @@ path_to_split_datasets = "./data"
 use_vgg = True
 batch_size = 32
 steps_per_epoch = 120
-epochs=30
+epochs=60
 validation_steps = 100
 
 
@@ -93,10 +92,7 @@ train_generator = train_datagen.flow_from_directory(path_to_train,
                                                     class_mode='categorical')
 # just for information
 class_indices = train_generator.class_indices
-print("------------- CLASSES --------------------")
 print(class_indices)
-print("------------- CLASSES --------------------")
-
 
 # ... definition for validation
 validation_generator = test_datagen.flow_from_directory(
@@ -176,7 +172,7 @@ else:
 
 # we need to recompile the model for these modifications to take effect
 # we use SGD with a low learning rate
-model.compile(optimizer=SGD(lr=0.0001, momentum=0.9),
+model.compile(optimizer=SGD(learning_rate=0.0001, momentum=0.9),
               loss='categorical_crossentropy',
               metrics=['categorical_accuracy'])
 
@@ -199,10 +195,12 @@ earlystopper = EarlyStopping(monitor='val_categorical_accuracy',
 model.fit(
     train_generator,
     steps_per_epoch=steps_per_epoch,
-    epochs=epochs + int(epochs * 0.1),
+    epochs=epochs + int(epochs * 0.3),
     callbacks=[checkpointer, earlystopper, tensorboard],
     validation_data=validation_generator,
     validation_steps=validation_steps,
     initial_epoch=initial_epoch)
 
-model.save("./models/input/convertme.h5")
+import time
+timestr = time.strftime("%Y%m%d-%H%M%S")
+model.save(f"./models/input/convertme_{timestr}.h5")
