@@ -1,3 +1,3 @@
-import { run } from './train_unet';
+import { run } from './finetune_mobilenet_eurosat';
 
 await run();
