@@ -1,19 +1,14 @@
-// demo: https://storage.googleapis.com/tfjs-examples/mobilenet/dist/index.html
-// load mobilenet: https://github.com/tensorflow/tfjs-examples/blob/master/mobilenet/index.js
-// finetuning aka transfer-learning: https://github.com/tensorflow/tfjs-examples/tree/master/webcam-transfer-learning
-
 import * as tf from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-backend-webgl';
 // import '@tensorflow/tfjs-backend-webgpu';
 import * as mobilenet from '@tensorflow-models/mobilenet';
 
-// async function loadTruncatedMobileNet() {
-//     const model = await mobilenet.load({version:2, alpha: 0.5});
-//     const layer = model.getLayer('conv_pw_13_relu');
-//     return tf.model({inputs: model.inputs, outputs: layer.output});
-//   }
+function loadData(trainingDataSize: number): { xs: tf.Tensor[]; ys: tf.Tensor } {
+    throw new Error('Function not implemented.');
+}
 
 async function loadNet(nrClasses: number) {
+    // const model = await mobilenet.load({version:2, alpha: 0.5});
     const mnet = await tf.loadLayersModel(
         'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json'
     );
@@ -52,30 +47,29 @@ async function loadNet(nrClasses: number) {
     return { truncatedMobileNet, customHead };
 }
 
-function train(truncatedMobileNet: tf.LayersModel, customHead: tf.Sequential) {
+async function train(truncatedMobileNet: tf.LayersModel, customHead: tf.Sequential) {
     // Creates the optimizers which drives training of the model.
     const optimizer = tf.train.adam(0.1);
+
     // We use categoricalCrossentropy which is the loss function we use for
     // categorical classification which measures the error between our predicted
     // probability distribution over classes (probability that an input is of each
     // class), versus the label (100% probability in the true class)>
     customHead.compile({ optimizer: optimizer, loss: 'categoricalCrossentropy' });
 
-    // We parameterize batch size as a fraction of the entire dataset because the
-    // number of examples that are collected depends on how many examples the user
-    // collects. This allows us to have a flexible batch size.
-    const batchSize = Math.floor(controllerDataset.xs.shape[0] * ui.getBatchSizeFraction());
-    if (!(batchSize > 0)) {
-        throw new Error(`Batch size is 0 or NaN. Please choose a non-zero fraction.`);
-    }
+    const batchSize = 32;
+    const epochs = 30;
+    const trainingDataSize = 10_000;
+
+    const { xs, ys } = loadData(trainingDataSize);
 
     // Train the model! Model.fit() will shuffle xs & ys so we don't have to.
-    customHead.fit(controllerDataset.xs, controllerDataset.ys, {
+    const history = await customHead.fit(xs, ys, {
         batchSize,
-        epochs: ui.getEpochs(),
+        epochs: epochs,
         callbacks: {
             onBatchEnd: async (batch, logs) => {
-                ui.trainStatus('Loss: ' + logs.loss.toFixed(5));
+                console.log('Loss: ' + logs?.loss.toFixed(5));
             },
         },
     });
@@ -97,8 +91,9 @@ async function predict(truncatedMobileNet: tf.LayersModel, customHead: tf.Sequen
 export async function run() {
     // await tf.setBackend("webgpu");
     const img = document.getElementById('image') as HTMLImageElement;
-    const model = await mobilenet.load({ version: 2, alpha: 0.5 });
+    const { truncatedMobileNet, customHead } = await loadNet(10);
     console.log({ backend: tf.getBackend() });
-    const predictions = await model.classify(img);
-    console.log(predictions);
+    await train(truncatedMobileNet, customHead);
+    const prediction = await predict(truncatedMobileNet, customHead, tf.browser.fromPixels(img));
+    console.log(prediction);
 }
