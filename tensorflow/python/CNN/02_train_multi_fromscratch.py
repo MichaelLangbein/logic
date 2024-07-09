@@ -19,13 +19,13 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
 from tensorflow.keras.models import Model
 
-from image_functions import simple_image_generator
+from image_functions import simple_image_generator, preprocessing_image_ms
 
 # variables
 path_to_split_datasets = "./data_multispec"
 use_vgg = True
 batch_size = 64
-steps_per_epoch=120
+steps_per_epoch=200
 epochs=40
 validation_steps=200
 
@@ -75,16 +75,19 @@ model.summary()
 # defining ImageDataGenerators
 # ... initialization for training
 training_files = glob(path_to_train + "/**/*.tif")
+print(f"----- got {len(training_files)} training files -----")
 train_generator = simple_image_generator(training_files, class_indices,
                                          batch_size=batch_size,
                                          rotation_range=45,
                                          horizontal_flip=True,
-                                         vertical_flip=True)
+                                         vertical_flip=True,
+                                         preprocessing_function=preprocessing_image_ms)
 
 # ... initialization for validation
 validation_files = glob(path_to_validation + "/**/*.tif")
 validation_generator = simple_image_generator(validation_files, class_indices,
-                                              batch_size=batch_size)
+                                              batch_size=batch_size,
+                                              preprocessing_function=preprocessing_image_ms)
 
 # compile the model
 model.compile(optimizer='adam', loss='categorical_crossentropy',

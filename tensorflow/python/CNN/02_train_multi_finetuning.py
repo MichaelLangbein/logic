@@ -21,14 +21,14 @@ from tensorflow.keras.layers import (Conv2D, Dense, GlobalAveragePooling2D,
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import SGD
 
-from image_functions import simple_image_generator
+from image_functions import simple_image_generator, preprocessing_image_ms
 
 # variables
 path_to_split_datasets = "./data_multispec"
 use_vgg = True
-batch_size = 32
-steps_per_epoch=120
-epochs=40
+batch_size = 64
+steps_per_epoch=400
+epochs=80
 validation_steps=200
 
 
@@ -104,12 +104,14 @@ train_generator = simple_image_generator(training_files, class_indices,
                                          batch_size=batch_size,
                                          rotation_range=45,
                                          horizontal_flip=True,
-                                         vertical_flip=True)
+                                         vertical_flip=True,
+                                         preprocessing_function=preprocessing_image_ms)
 
 # ... initialization for validation
 validation_files = glob(path_to_validation + "/**/*.tif")
 validation_generator = simple_image_generator(validation_files, class_indices,
-                                              batch_size=batch_size)
+                                              batch_size=batch_size,
+                                              preprocessing_function=preprocessing_image_ms)
 
 # first: train only the top layers (which were randomly initialized)
 # i.e. freeze all convolutional layers
@@ -212,4 +214,6 @@ fineTuneHistory = model.fit(
 #%%
 import time
 timestr = time.strftime("%Y%m%d-%H%M%S")
-model.save(f"./models/input/convertme_{timestr}_{fineTuneHistory.history['categorical_accuracy'][-1]}.h5")
+fileName = f"./models/input/convertme_{timestr}_{fineTuneHistory.history['categorical_accuracy'][-1]}.h5"
+print(f"----saving model under {fileName}-----")
+model.save()

@@ -23,7 +23,7 @@ from tqdm import tqdm
 #%%
 # input files
 path_to_image = "./verification_multi/"
-path_to_model = "./models/input/convertme_time20240708_135924_acc0.925.h5"
+path_to_model = "./models/input/convertme_time_acc0.925.h5"
 # output files
 path_to_label_image = "./verification/_10m_vgg_ms_label.tif"
 path_to_prob_image = "./verification/_10m_vgg_ms_prob.tif"
@@ -43,7 +43,7 @@ image10 = np.zeros(image9.shape)
 image11 = np.array(imread("/home/michael/Desktop/code/logic/tensorflow/python/CNN/verification_multi/b11.tiff"), dtype=float)
 image12 = np.array(imread("/home/michael/Desktop/code/logic/tensorflow/python/CNN/verification_multi/b12.tiff"), dtype=float)
 image = np.stack([image1, image2, image3, image4, image5, image6, image7, image8, image8a, image9, image10, image11, image12], axis=2)
-
+image_orig = image
 
 #%%
 
@@ -65,13 +65,16 @@ else:
 
 #%%
 # pad image
-image = np.pad(image, ((input_rows, input_rows),
-                    (input_cols, input_cols),
-                    (0, 0)), 'symmetric')
-
+image = np.pad(image, (
+        (input_rows, input_rows),
+        (input_cols, input_cols),
+        (0, 0),
+    ), 'symmetric')
 
 # don't forget to preprocess
-image = preprocessing_image(image)
+mean = image.mean(axis=(0,1))
+std = image.std(axis=(0,1))
+image = preprocessing_image(image, mean, std)
 num_rows, num_cols, _ = image.shape
 
 #%%
@@ -100,7 +103,6 @@ image_classified_prob = np.sort(image_classified_prob, axis=-1)[..., -1]
 
 #%%
 import matplotlib.pyplot as plt
-from matplotlib import colors
 
 # plt.imshow(image, cmap='gray', interpolation='none')
 # plt.imshow(image_classified_label, cmap='jet', alpha=0.25, interpolation='none')
@@ -129,8 +131,6 @@ def toRgbSimple(c):
 
 
 
-unpaddedImage = image[input_rows:num_rows-input_rows,
-                                              input_cols:num_cols-input_cols, :]
 
 rows, cols = image_classified_label.shape
 image_classified_label_rgb = np.zeros([rows, cols, 3], dtype=np.uint8)
@@ -140,7 +140,7 @@ for i in range(rows):
 
 
 fig, axes = plt.subplots(1, 2)
-img0 = axes[0].imshow(unpaddedImage / 2,  interpolation='none')
+img0 = axes[0].imshow(image_orig[:, :, [6, 7, 8]],  interpolation='none')
 img1 = axes[1].imshow(image_classified_label_rgb / 255, interpolation='none')
 
 

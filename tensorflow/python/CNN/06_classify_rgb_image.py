@@ -47,11 +47,14 @@ else:
 image = np.pad(image, ((input_rows, input_rows),
                     (input_cols, input_cols),
                     (0, 0)), 'symmetric')
+mean = image.mean(axis=(0,1))
+std = image.std(axis=(0,1))
 
 
 # don't forget to preprocess
-image = preprocessing_image(image)
+image = preprocessing_image(image, mean, std)
 num_rows, num_cols, _ = image.shape
+
 
 #%%
 # sliding window over image

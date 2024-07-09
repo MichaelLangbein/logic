@@ -8,10 +8,14 @@ from skimage.transform import rotate
 from tensorflow.keras.utils import to_categorical
 
 
-def preprocessing_image_rgb(x):
+def preprocessing_image_rgb(
+        x, 
+        mean = [87.845, 96.965, 103.947],
+        std = [23.657, 16.474, 13.793]
+    ):
     # define mean and std values
-    mean = [np.mean(x[:, :, 0]), np.mean(x[:, :, 1]), np.mean(x[:, :, 2])]
-    std = [np.std(x[:, :, 0]), np.std(x[:, :, 1]), np.std(x[:, :, 2])]
+    # mean = x.mean(axis=(0,1))
+    # std = x.std(axis=(0,1))
     # loop over image channels
     for idx, mean_value in enumerate(mean):
         x[..., idx] -= mean_value
@@ -19,10 +23,14 @@ def preprocessing_image_rgb(x):
     return x
 
 
-def preprocessing_image_ms(x):
+def preprocessing_image_ms(
+        x,
+        mean = [1353.036, 1116.468, 1041.475, 945.344, 1198.498, 2004.878, 2376.699, 2303.738, 732.957, 12.092, 1818.820, 1116.271, 2602.579],
+        std = [65.479, 154.008, 187.997, 278.508, 228.122, 356.598, 456.035, 531.570, 98.947, 1.188, 378.993, 303.851, 503.181]
+        ):
     # define mean and std values
-    mean = x.mean(axis=(0,1))
-    std = x.std(axis=(0,1))
+    # mean = x.mean(axis=(0,1))
+    # std = x.std(axis=(0,1))
     # loop over image channels
     for idx, mean_value in enumerate(mean):
         x[..., idx] -= mean_value
@@ -45,7 +53,8 @@ def categorical_label_from_full_file_name(files, class_indices):
 
 def simple_image_generator(files, class_indices, batch_size=32,
                            rotation_range=0, horizontal_flip=False,
-                           vertical_flip=False):
+                           vertical_flip=False,
+                           preprocessing_function = None):
 
     while True:
         # select batch_size number of samples without replacement
@@ -75,6 +84,8 @@ def simple_image_generator(files, class_indices, batch_size=32,
                                           high=abs(rotation_range))
                 image = rotate(image, angle, mode='reflect',
                                order=1, preserve_range=True)
+            if preprocessing_function is not None:
+                image = preprocessing_function(image)
             # put all together
             batch_X += [image]
         # convert lists to np.array
