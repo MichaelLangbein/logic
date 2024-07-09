@@ -1,3 +1,3 @@
-import { run } from './load_cnn';
+import { run } from './train_unet';
 
 await run();
